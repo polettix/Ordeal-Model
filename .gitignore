@@ -1,0 +1,5 @@
+.build/
+*.swp
+/local/
+/Ordeal-Model-*.tar.gz
+/Ordeal-Model-*/

@@ -1,0 +1,56 @@
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+Ordeal::Model - [ a brief description of the distribution ]
+
+=head1 VERSION
+
+This document describes Ordeal::Model version {{[ version ]}}.
+
+=head1 SYNOPSIS
+
+   use Ordeal::Model;
+
+
+=head1 DESCRIPTION
+
+This module allows you to...
+
+=head1 FUNCTIONS
+
+=head2 B<< whatever >>
+
+
+
+=head1 METHODS
+
+=head2 B<< whatever >>
+
+
+=head1 BUGS AND LIMITATIONS
+
+Report bugs either through RT or GitHub (patches welcome).
+
+=head1 SEE ALSO
+
+Foo::Bar.
+
+=head1 AUTHOR
+
+Flavio Poletti <polettix@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2018 by Flavio Poletti <polettix@cpan.org>
+
+This module is free software. You can redistribute it and/or modify it
+under the terms of the Artistic License 2.0.
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+
+=cut
