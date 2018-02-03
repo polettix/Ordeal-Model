@@ -105,38 +105,6 @@ sub __data_reader ($filename) {
    return $retval;
 }
 
-sub get_deck_old ($self, $id, %args) {
-   my ($group, $nid, $name) = $id =~ m{
-      \A
-            (.*?) # group
-         -  (\d+) # numerical identifier
-         -  (.*)  # name
-      \z
-   }mxs or ouch 400, 'invalid identifier', $id;
-
-   my $path = path($self->base_directory)->child(decks => $id);
-   $path->exists or ouch 404, 'not found', $id;
-
-   my @cards = sort { $a->id cmp $b->id }
-      map { $self->get_card($_->basename) } $path->children;
-
-   my $shuffle = exists($args{shuffle}) ? $args{shuffle} : 1;
-   if ($args{seed}) {
-      $shuffle = 1;
-      srand $args{seed};
-   }
-
-   @cards = shuffle @cards if $shuffle;
-   @cards = splice @cards, 0, $args{n} if $args{n};
-
-   return Ordeal::Model::Deck->new(
-      group => $group,
-      id => $id,
-      name => $name,
-      cards => \@cards,
-   );
-}
-
 sub get_deck ($self, $id) {
    my ($group, $nid, $name) = $id =~ m{
       \A
