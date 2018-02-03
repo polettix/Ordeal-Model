@@ -5,6 +5,7 @@ package Ordeal::Model::Card;
 use 5.020;
 use strict; # redundant, but still useful to document
 use warnings;
+{ our $VERSION = '0.001'; }
 use English qw< -no_match_vars >;
 use Mo qw< default >;
 use Ouch;

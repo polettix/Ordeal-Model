@@ -15,6 +15,7 @@ use List::Util qw< shuffle >;
 
 use Ordeal::Model::Card;
 use Ordeal::Model::Deck;
+use Ordeal::Model::Shuffle;
 
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
@@ -80,14 +81,18 @@ sub _get_cards_iterator ($self, %args) {
    };
 }
 
+sub __exhaust_iterator ($it) {
+   my @retval;
+   while (defined(my $item = $it->())) {
+      push @retval, $item;
+   }
+   return @retval;
+}
+
 sub get_cards ($self, %args) {
    my $iterator = $self->_get_cards_iterator(%args);
    return $iterator unless wantarray;
-   my @retval;
-   while (defined(my $card = $iterator->())) {
-      push @retval, $card;
-   }
-   return @retval;
+   return __exhaust_iterator($iterator);
 }
 
 sub __data_reader ($filename) {
@@ -100,7 +105,7 @@ sub __data_reader ($filename) {
    return $retval;
 }
 
-sub get_deck ($self, $id, %args) {
+sub get_deck_old ($self, $id, %args) {
    my ($group, $nid, $name) = $id =~ m{
       \A
             (.*?) # group
@@ -130,15 +135,49 @@ sub get_deck ($self, $id, %args) {
       name => $name,
       cards => \@cards,
    );
-
 }
 
+sub get_deck ($self, $id) {
+   my ($group, $nid, $name) = $id =~ m{
+      \A
+            (.*?) # group
+         -  (\d+) # numerical identifier
+         -  (.*)  # name
+      \z
+   }mxs or ouch 400, 'invalid identifier', $id;
 
+   my $path = path($self->base_directory)->child(decks => $id);
+   $path->exists or ouch 404, 'not found', $id;
 
+   my @cards =
+      map { $self->get_card($_->realpath->basename) }
+      sort { $a->basename cmp $b->basename }
+      $path->children;
 
+   return Ordeal::Model::Deck->new(
+      group => $group,
+      id => $id,
+      name => $name,
+      cards => \@cards,
+   );
+}
 
-
-
-
+sub get_shuffled_deck ($self, $deck_id, %args) {
+   my $deck = $self->get_deck($deck_id);
+   my $shuffle = Ordeal::Model::Shuffle->new(
+      deck => $deck,
+      seed => $args{seed},
+   );
+   my $n = $args{n} // $deck->n_cards;
+   ouch 400, 'invalid number of requested cards', $args{n}
+      if $n > $shuffle->n_remaining;
+   return $shuffle->draw($n) if wantarray;
+   return sub {
+      return if $n <= 0;
+      return if $shuffle->n_remaining <= 0;
+      $n--;
+      return $shuffle->draw(1);
+   };
+}
 
 1;

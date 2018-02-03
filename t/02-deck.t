@@ -21,7 +21,7 @@ throws_ok { $model->get_deck('inexistent-1-ciao') } qr{not found},
    'inexistent identifier';
 
 my $deck;
-lives_ok { $deck = $model->get_deck('group1-02-all', seed => 9111972) }
+lives_ok { $deck = $model->get_deck('group1-02-all') }
    'valid deck is found';
 
 is $deck->name, 'all', 'deck name';
@@ -32,11 +32,11 @@ is scalar($deck->cards->@*), 5, 'cards in loaded deck';
 is_deeply [ map {$_->id} $deck->cards->@* ],
    [
       qw<
-         public-01-bleh.png
          group1-01-whatevah.png
-         public-00-bah.png
          group1-02-whateeeevah.jpg
          group1-03-wtf.svg
+         public-00-bah.png
+         public-01-bleh.png
       >
    ], 'cards in expected order';
 
