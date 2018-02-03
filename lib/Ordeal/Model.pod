@@ -95,28 +95,54 @@ values for any field in a card SHOULD be supported and future proof.
 
 =head2 B<< get_deck >>
 
-   my @cards    = $o->get_deck($id, %args); # list-returning interface
-   my $iterator = $o->get_deck($id, %args); # iterator-returning
+   my @cards    = $o->get_deck($id); # list-returning interface
+   my $iterator = $o->get_deck($id); # iterator-returning
 
-get a deck, possibly shuffled. The following keys are supported in
-C<%args>:
+get a deck, ordered. See also L</get_shuffled_cards>.
+
+=head2 B<< get_shuffled_cards >>
+
+   my @cards    = $o->get_shuffled_cards($id, %args); # list
+   my $iterator = $o->get_shuffled_cards($id, %args); # scalar
+
+get shuffled cards from a deck. L</get_deck> is used to retrieve
+the deck of cards using C<$id>.
+
+The list-context invocation returns the cards directly. The
+scalar-context invocation returns an iterator to go through the cards
+sequentially, like this:
+
+   my $iterator = $o->get_shuffled_cards($id, %args);
+   while (defined(my $card = $iterator->())) {
+      say $card->id;
+   }
+
+Supported keys in C<%args> are:
 
 =over
-
-=item C<shuffle>
-
-boolean, indicates whether to shuffle the deck or not. Defaults to C<1>
-i.e. a true value.
 
 =item C<n>
 
 integer, indicates how many cards to return from the deck. Defaults to
 C<undef> which means the whole deck.
 
+=item C<random_source>
+
+something resembling the interface exposed by
+L<Ordeal::Model::ChaCha20>. Possibly that.
+
+=item C<random_source_state>
+
+opaque data useful for fully restoring the state of a random data
+source. The actual usage of these data is up to the module implementing
+the random data source. It is passed to method C<restore> of whatever
+random data source is available, i.e. either the one provided by
+C<%args> or, as a fallback, an instance of L<Ordeal::Model::ChaCha20>.
+
 =item C<seed>
 
-opaque data useful for seeding the relevant generator of random data.
-Implies C<shuffle> above even if explicitly set to a false value.
+data useful for creating and seeding a random data source. It is ignored
+if L</random_source> above is present in C<%args>.
 
 =back
 
@@ -127,10 +153,6 @@ postderef; for this reason, at least perl 5.20 will be needed.
 
 Report bugs through GitHub (patches welcome) at
 L<https://github.com/polettix/Ordeal-Model>.
-
-=head1 SEE ALSO
-
-Foo::Bar.
 
 =head1 AUTHOR
 

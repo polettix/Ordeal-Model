@@ -16,6 +16,7 @@ use List::Util qw< shuffle >;
 use Ordeal::Model::Card;
 use Ordeal::Model::Deck;
 use Ordeal::Model::Shuffle;
+use Ordeal::Model::ChaCha20;
 
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
@@ -130,11 +131,15 @@ sub get_deck ($self, $id) {
    );
 } ## end sub get_deck
 
-sub get_shuffled_deck ($self, $deck_id, %args) {
+sub get_shuffled_cards ($self, $deck_id, %args) {
    my $deck    = $self->get_deck($deck_id);
+   my $random_source = $args{random_source}
+      // Ordeal::Model::ChaCha20->new(seed => $args{seed});
+   $random_source->restore($args{random_source_state})
+      if exists $args{random_source_state};
    my $shuffle = Ordeal::Model::Shuffle->new(
       deck => $deck,
-      seed => $args{seed},
+      random_source => $random_source,
    );
    my $n = $args{n} // $deck->n_cards;
    ouch 400, 'invalid number of requested cards', $args{n}

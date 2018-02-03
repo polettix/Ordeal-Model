@@ -19,11 +19,19 @@ use constant BITS => (~0 == 4294967295) ? 32 : 64;
 use constant CACHE_SIZE => 1000;
 use constant ROUNDS     => 20;
 
-has goodseed => ();
+use constant RELEASE => 0x01; # 0x00 marks extension
+
 has state    => ();
 has buffer   => ();
 has seed     => ();
-has min_bits => (default => 4);
+
+sub bits_rand ($self, $n) {
+   while (length($self->{buffer}) < $n) {
+      my $add_on = $self->_core((int($n / 8) + 64) >> 6);
+      $self->{buffer} .= unpack 'b*', $add_on;
+   }
+   return substr $self->{buffer}, 0, $n, '';
+} ## end sub bits_rand
 
 sub BUILD ($self) {
    my $seed = $self->seed // do {
@@ -33,7 +41,56 @@ sub BUILD ($self) {
         : pack 'V2', $s, $s >> 32;
    };
    $self->seed($seed);
-   $self->goodseed(length($seed) >= 16);
+   $self->reset;
+} ## end sub BUILD ($self)
+
+sub freeze ($self) {
+   my $state = unpack 'H*', join '', pack 'N*', $self->state->@*;
+   my $buffer = $self->buffer;
+   my $buflen = unpack 'H*', pack 'N', length $buffer;
+   $buffer = unpack 'H*', join '', pack 'B*', $buffer;
+   my $seed = unpack 'H*', substr $self->seed, 0, 40;
+   return join '', $state, $buflen, $buffer, $seed;
+}
+
+sub int_rand ($self, $low, $high) {
+   my $N = $high - $low + 1;
+   state $cache = {};
+   my ($nbits, $reject_threshold);
+   if (exists $cache->{$N}) {
+      ($nbits, $reject_threshold) = $cache->{$N}->@*;
+   }
+   else {
+      $nbits = int(log($N) / log(2));
+      my $M = 2 ** $nbits;
+      while ($M < $N) {
+         $nbits++;
+         $M *= 2;
+      }
+      $reject_threshold = $M - $M % $N;
+      if (keys($cache->%*) <= CACHE_SIZE) { # will cache, optimize it
+         while (($nbits * $M / $reject_threshold) > ($nbits + 1)) {
+            $nbits++;
+            $M *= 2;
+            $reject_threshold = $M - $M % $N;
+         }
+         $cache->{$N} = [$nbits, $reject_threshold];
+      }
+   } ## end else [ if ($N <= CACHE_SIZE &&...)]
+   my $retval = $reject_threshold;
+   while ($retval >= $reject_threshold) {
+      my $bitsequence = $self->bits_rand($nbits);
+      $retval = 0;
+      for my $v (reverse split //, pack 'b*', $bitsequence) {
+         $retval <<= 8;
+         $retval += ord $v;
+      }
+   } ## end while ($retval >= $reject_threshold)
+   return $low + $retval % $N;
+} ## end sub int_rand
+
+sub reset ($self) {
+   my $seed = $self->seed;
    $seed .= pack 'C', 0 while length($seed) % 4;
    my @seed = unpack 'V*', substr $seed, 0, 40;
    if (@seed < 10) {
@@ -43,13 +100,34 @@ sub BUILD ($self) {
    ouch 500, 'seed count failure', @seed if @seed != 10;
    $self->state(
       [
-         0x61707865,    0x3320646e,    0x79622d32, 0x6b206574,
-         @seed[0 .. 3], @seed[4 .. 7], 0,          0,
-         @seed[8 .. 9]
+         0x61707865,    0x3320646e,    0x79622d32, 0x6b206574, # 1^ row
+         @seed[0 .. 3],                                        # 2^ row
+         @seed[4 .. 7],                                        # 3^ row
+         0, 0, @seed[8 .. 9],                                  # 4^ row
       ]
    );
    $self->buffer('');
-} ## end sub BUILD ($self)
+}
+
+sub restore ($self, $opaque) {
+   for ($opaque) {
+      my @state = unpack 'N*', join '', pack 'H*', substr $_, 0, 128, '';
+      $self->state(\@state);
+      s{^-}{}mxs;
+      my $buflen = unpack 'N', pack 'H*', substr $_, 0, 8, '';
+      s{^-}{}mxs;
+      my $buffer = '';
+      if ($buflen) {
+         my $sl = ($buflen + (8 - $buflen % 8) % 8) / 4; # 2 * ... / 8
+         $buffer = unpack 'B*', join '', pack 'H*', substr $_, 0, $sl, '';
+         $buffer = substr $buffer, 0, $buflen;
+      }
+      $self->buffer($buffer);
+      s{^-}{}mxs;
+      $self->seed(join '', pack 'H*', $_);
+   }
+   return $self;
+}
 
 # Simple PRNG used to fill small seeds
 sub __prng_next ($s) {
@@ -85,39 +163,6 @@ sub __prng_new ($A, $B, $C, $D) {
    return \@s;
 } ## end sub __prng_new
 
-sub int_rand ($self, $low, $high) {
-   my $N = $high - $low + 1;
-   state $cache = [];
-   my ($nbits, $reject_threshold);
-   if ($N <= CACHE_SIZE && defined($cache->[$N])) {
-      ($nbits, $reject_threshold) = $cache->[$N]->@*;
-   }
-   else {
-      $nbits = int(log($N) / log(2)) + $self->min_bits;
-      my $M = 2**$nbits;
-      $reject_threshold = $M - $M % $N;
-      $cache->[$N] = [$nbits, $reject_threshold] if $N <= CACHE_SIZE;
-   } ## end else [ if ($N <= CACHE_SIZE &&...)]
-   my $retval = $reject_threshold;
-   while ($retval >= $reject_threshold) {
-      my $bitsequence = $self->bits_rand($nbits);
-      $retval = 0;
-      for my $v (reverse split //, pack 'b*', $bitsequence) {
-         $retval <<= 8;
-         $retval += ord $v;
-      }
-   } ## end while ($retval >= $reject_threshold)
-   return $low + $retval % $N;
-} ## end sub int_rand
-
-sub bits_rand ($self, $n) {
-   while (length($self->{buffer}) < $n) {
-      my $add_on = $self->_core((int(1 + $n / 8) + 63) >> 6);
-      $self->{buffer} .= unpack 'b*', $add_on;
-   }
-   return substr $self->{buffer}, 0, $n, '';
-} ## end sub bits_rand
-
 ###############################################################################
 # Begin ChaCha core, reference RFC 7539
 # with change to make blockcount/nonce be 64/64 from 32/96
@@ -139,7 +184,6 @@ sub bits_rand ($self, $n) {
 sub _core ($self, $blocks) {
    my $j  = $self->state();
    my $ks = '';
-   $blocks = 1 unless defined $blocks;
 
    while ($blocks-- > 0) {
       my (

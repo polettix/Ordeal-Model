@@ -20,7 +20,7 @@ has name => (default => '');
 
 sub data ($self, $data = undef) {
    $self->{data} = $data if @_ > 1;
-   $self->{data} = $self->{data}->() if ref $self->{data};
+   $self->{data} = $self->{data}->($self) if ref $self->{data};
    return $self->{data};
 }
 
