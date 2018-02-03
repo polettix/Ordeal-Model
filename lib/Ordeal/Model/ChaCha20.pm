@@ -21,16 +21,16 @@ use constant ROUNDS     => 20;
 
 use constant RELEASE => 0x01; # 0x00 marks extension
 
-has state    => ();
-has buffer   => ();
+has _state    => ();
+has _buffer   => ();
 has seed     => ();
 
 sub bits_rand ($self, $n) {
-   while (length($self->{buffer}) < $n) {
+   while (length($self->{_buffer}) < $n) {
       my $add_on = $self->_core((int($n / 8) + 64) >> 6);
-      $self->{buffer} .= unpack 'b*', $add_on;
+      $self->{_buffer} .= unpack 'b*', $add_on;
    }
-   return substr $self->{buffer}, 0, $n, '';
+   return substr $self->{_buffer}, 0, $n, '';
 } ## end sub bits_rand
 
 sub BUILD ($self) {
@@ -45,8 +45,8 @@ sub BUILD ($self) {
 } ## end sub BUILD ($self)
 
 sub freeze ($self) {
-   my $state = unpack 'H*', join '', pack 'N*', $self->state->@*;
-   my $buffer = $self->buffer;
+   my $state = unpack 'H*', join '', pack 'N*', $self->_state->@*;
+   my $buffer = $self->_buffer;
    my $buflen = unpack 'H*', pack 'N', length $buffer;
    $buffer = unpack 'H*', join '', pack 'B*', $buffer;
    my $seed = unpack 'H*', substr $self->seed, 0, 40;
@@ -98,7 +98,7 @@ sub reset ($self) {
       push @seed, __prng_next($rng) while @seed < 10;
    }
    ouch 500, 'seed count failure', @seed if @seed != 10;
-   $self->state(
+   $self->_state(
       [
          0x61707865,    0x3320646e,    0x79622d32, 0x6b206574, # 1^ row
          @seed[0 .. 3],                                        # 2^ row
@@ -106,13 +106,13 @@ sub reset ($self) {
          0, 0, @seed[8 .. 9],                                  # 4^ row
       ]
    );
-   $self->buffer('');
+   $self->_buffer('');
 }
 
 sub restore ($self, $opaque) {
    for ($opaque) {
       my @state = unpack 'N*', join '', pack 'H*', substr $_, 0, 128, '';
-      $self->state(\@state);
+      $self->_state(\@state);
       s{^-}{}mxs;
       my $buflen = unpack 'N', pack 'H*', substr $_, 0, 8, '';
       s{^-}{}mxs;
@@ -122,7 +122,7 @@ sub restore ($self, $opaque) {
          $buffer = unpack 'B*', join '', pack 'H*', substr $_, 0, $sl, '';
          $buffer = substr $buffer, 0, $buflen;
       }
-      $self->buffer($buffer);
+      $self->_buffer($buffer);
       s{^-}{}mxs;
       $self->seed(join '', pack 'H*', $_);
    }
@@ -182,7 +182,7 @@ sub __prng_new ($A, $B, $C, $D) {
 # it ruins right shifts.  We also must ensure we save as unsigned.
 
 sub _core ($self, $blocks) {
-   my $j  = $self->state();
+   my $j  = $self->_state;
    my $ks = '';
 
    while ($blocks-- > 0) {
