@@ -25,13 +25,13 @@ has _state    => ();
 has _buffer   => ();
 has seed     => ();
 
-sub bits_rand ($self, $n) {
+sub _bits_rand ($self, $n) {
    while (length($self->{_buffer}) < $n) {
       my $add_on = $self->_core((int($n / 8) + 64) >> 6);
       $self->{_buffer} .= unpack 'b*', $add_on;
    }
    return substr $self->{_buffer}, 0, $n, '';
-} ## end sub bits_rand
+} ## end sub _bits_rand
 
 sub BUILD ($self) {
    my $seed = $self->seed // do {
@@ -45,12 +45,13 @@ sub BUILD ($self) {
 } ## end sub BUILD ($self)
 
 sub freeze ($self) {
+   my $release = unpack 'H*', RELEASE;
    my $state = unpack 'H*', join '', pack 'N*', $self->_state->@*;
    my $buffer = $self->_buffer;
    my $buflen = unpack 'H*', pack 'N', length $buffer;
    $buffer = unpack 'H*', join '', pack 'B*', $buffer;
    my $seed = unpack 'H*', substr $self->seed, 0, 40;
-   return join '', $state, $buflen, $buffer, $seed;
+   return join '', $release, $state, $buflen, $buffer, $seed;
 }
 
 sub int_rand ($self, $low, $high) {
@@ -79,7 +80,7 @@ sub int_rand ($self, $low, $high) {
    } ## end else [ if ($N <= CACHE_SIZE &&...)]
    my $retval = $reject_threshold;
    while ($retval >= $reject_threshold) {
-      my $bitsequence = $self->bits_rand($nbits);
+      my $bitsequence = $self->_bits_rand($nbits);
       $retval = 0;
       for my $v (reverse split //, pack 'b*', $bitsequence) {
          $retval <<= 8;
@@ -109,7 +110,7 @@ sub reset ($self) {
    $self->_buffer('');
 }
 
-sub restore ($self, $opaque) {
+sub _restore_01 ($self, $opaque) {
    for ($opaque) {
       my @state = unpack 'N*', join '', pack 'H*', substr $_, 0, 128, '';
       $self->_state(\@state);
@@ -126,6 +127,14 @@ sub restore ($self, $opaque) {
       s{^-}{}mxs;
       $self->seed(join '', pack 'H*', $_);
    }
+   return $self;
+}
+
+sub restore ($self, $opaque) {
+   my $release = substr $_, 0, 2, '';
+   my $method = $self->can("_restore_$release")
+      or ouch 400, 'cannot restore release', $release;
+   $self->$method($opaque);
    return $self;
 }
 
