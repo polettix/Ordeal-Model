@@ -102,36 +102,51 @@ get a deck, ordered. See also L</get_shuffled_cards>.
 
 =head2 B<< get_shuffled_cards >>
 
-   my @cards    = $o->get_shuffled_cards($id, %args); # list
-   my $iterator = $o->get_shuffled_cards($id, %args); # scalar
+   my @cards    = $o->get_shuffled_cards(%args); # list
+   my $iterator = $o->get_shuffled_cards(%args); # scalar
 
-get shuffled cards from a deck. L</get_deck> is used to retrieve
-the deck of cards using C<$id>.
+get shuffled cards from one or more shuffles/decks.
 
-The list-context invocation returns the cards directly. The
-scalar-context invocation returns an iterator to go through the cards
-sequentially, like this:
+This method uses L<Ordeal::Model::ShuffleSet::create> behind the scenes,
+to which it forwards most of the parameters in C<%args>. Any parameter
+described in L<Ordeal::Model::ShuffleSet> and not below is a
+documentation bug!
 
-   my $iterator = $o->get_shuffled_cards($id, %args);
-   while (defined(my $card = $iterator->())) {
-      say $card->id;
-   }
-
-Supported keys in C<%args> are:
+Supported keys are:
 
 =over
 
-=item C<n>
+=item C<< auto_reshuffle >>
 
-integer, indicates how many cards to return from the deck. Defaults to
-C<undef> which means the whole deck.
+automatically reshuffle the whole set after each draw (allows easy
+simulation of dice).
 
-=item C<random_source>
+=item C<< items >>
 
-something resembling the interface exposed by
-L<Ordeal::Model::ChaCha20>. Possibly that.
+reference to an array of items to be part of the
+L<Ordeal::Model::ShuffleSet>. The exact shape of
+an input item is described in L<Ordeal::Model::ShuffleSet>; in this
+context, it suffices to say that you can provide a list of plain deck
+identifiers and they will be turned into shuffles;
 
-=item C<random_source_state>
+=item C<< default_n_draw >>
+
+the default number of cards to be drawn from a shuffle. Defaults to
+C<undef> (i.e. it will translate to whatever default is the shuffle).
+
+=item C<< n >>
+
+call L<Ordeal::Model::ShuffleSet::draw> this number of times. Defaults
+to C<1>.
+
+=item C<< random_source >>
+
+a default random source to be used in common by all shuffles. Any specific
+random source set in a definition overrides this, even an explicit
+C<undef> taht will trigger creation of a shuffle-specific random source.
+It is not used for items passed as shuffles.
+
+=item C<< random_source_state >>
 
 opaque data useful for fully restoring the state of a random data
 source. The actual usage of these data is up to the module implementing
@@ -139,12 +154,26 @@ the random data source. It is passed to method C<restore> of whatever
 random data source is available, i.e. either the one provided by
 C<%args> or, as a fallback, an instance of L<Ordeal::Model::ChaCha20>.
 
-=item C<seed>
+=item C<< seed >>
 
-data useful for creating and seeding a random data source. It is ignored
-if L</random_source> above is present in C<%args>.
+this parameter is consumed internally in this method, and in particular
+it is used for creating a new instance of L<Ordeal::Model::ChaCha20> if
+L</random_source> is not present.
 
 =back
+
+The list-context invocation returns the cards directly. The
+scalar-context invocation returns an iterator to go through the
+C<$args{n}> draws sequentially, like this:
+
+   my $iterator = $o->get_shuffled_cards(%args);
+   while (my @cards = $iterator->()) {
+      # ... use @cards
+   }
+
+Note that the C<$iterator> function always returns a list; hence, you
+will probably want to avoid to call it in scalar context, because
+otherwise it will return the number of cards of the specific draw.
 
 =head1 BUGS AND LIMITATIONS
 

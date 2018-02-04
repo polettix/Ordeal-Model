@@ -15,28 +15,33 @@ my $model = Ordeal::Model->new(base_directory => $dir->absolute);
 
 isa_ok $model, 'Ordeal::Model';
 
-throws_ok { $model->get_shuffled_cards('mah') } qr{invalid identifier},
-  'invalid identifier';
-throws_ok { $model->get_shuffled_cards('inexistent-1-ciao') }
-qr{not found},
-  'inexistent identifier';
+throws_ok { $model->get_shuffled_cards(items => ['mah']) }
+   qr{invalid identifier}, 'invalid identifier';
+throws_ok { $model->get_shuffled_cards(items => ['inexistent-1-ciao']) }
+   qr{not found}, 'inexistent identifier';
 
 my $shuffled;
 lives_ok {
-   $shuffled =
-     $model->get_shuffled_cards('group1-02-all', seed => 9111972)
+   $shuffled = $model->get_shuffled_cards(
+      items => ['group1-02-all'],
+      seed => 9111972,
+      n => 5,
+   )
 }
 'valid deck is found and shuffled';
 isa_ok $shuffled, 'CODE';
 
 my @got;
-while (my $card = $shuffled->()) {
+while (my ($card) = $shuffled->()) {
    push @got, $card;
 }
 is scalar(@got), 5, 'cards in shuffled deck';
 
-my @shuffled =
-  $model->get_shuffled_cards('group1-02-all', seed => 9111972);
+my @shuffled = $model->get_shuffled_cards(
+   items => ['group1-02-all'],
+   seed => 9111972,
+   n => 5
+);
 is scalar(@shuffled), 5, 'same number of cards in list invocation';
 
 @got      = map { $_->id } @got;

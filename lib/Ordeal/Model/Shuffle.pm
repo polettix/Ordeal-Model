@@ -26,6 +26,7 @@ sub BUILD ($self) {
       require Ordeal::Model::ChaCha20;
       $self->random_source(Ordeal::Model::ChaCha20->new);
    }
+   $self->default_n_draw(1) unless defined $self->default_n_draw;
    $self->reshuffle;
 }
 

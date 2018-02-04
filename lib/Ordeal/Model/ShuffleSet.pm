@@ -23,7 +23,10 @@ sub create ($package, %args) {
    };
    my @shuffles = map {
       my $shuffle;
-      my %fc = (default_n_draw => 1, random_source  => $rs);
+      my %fc = (
+         default_n_draw => $args{default_n_draw},
+         random_source  => $rs,
+      );
       if (blessed($_)) {
          if ($_->can('draw')) {
             $shuffle = $_; # good for drawing cards
@@ -38,15 +41,21 @@ sub create ($package, %args) {
       elsif (ref($_) eq 'HASH') {
          %fc = (%fc, $_->%*);
          if ((! exists $fc{deck}) && exists($fc{deck_id})) {
-            require Ordeal::Model;
-            $fc{deck} = Ordeal::Model::get_deck($fc{deck_id});
+            $fc{deck} = $args{ordeal}->get_deck($_);
          }
       }
+      elsif (! ref $_) {
+         $fc{deck} = $args{ordeal}->get_deck($_);
+      }
+      else {
+         ouch 400, 'unknown item type', $_;
+      }
+      #use Data::Dumper; say STDERR Dumper \%fc;
       if (! $shuffle) { # still have to generate a shuffle
          ouch 400, 'no deck for shuffle item', $_
             unless blessed($fc{deck}) && $fc{deck}->can('cards');
          require Ordeal::Model::Shuffle;
-         $shuffle = Ordeal::Shuffle::Model->new(%fc);
+         $shuffle = Ordeal::Model::Shuffle->new(%fc);
       }
       $shuffle->auto_reshuffle($args{auto_reshuffle});
       $shuffle;

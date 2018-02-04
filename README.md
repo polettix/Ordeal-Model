@@ -87,32 +87,47 @@ get a deck, ordered. See also ["get\_shuffled\_cards"](#get_shuffled_cards).
 
 ## **get\_shuffled\_cards**
 
-    my @cards    = $o->get_shuffled_cards($id, %args); # list
-    my $iterator = $o->get_shuffled_cards($id, %args); # scalar
+    my @cards    = $o->get_shuffled_cards(%args); # list
+    my $iterator = $o->get_shuffled_cards(%args); # scalar
 
-get shuffled cards from a deck. ["get\_deck"](#get_deck) is used to retrieve
-the deck of cards using `$id`.
+get shuffled cards from one or more shuffles/decks.
 
-The list-context invocation returns the cards directly. The
-scalar-context invocation returns an iterator to go through the cards
-sequentially, like this:
+This method uses [Ordeal::Model::ShuffleSet::create](https://metacpan.org/pod/Ordeal::Model::ShuffleSet::create) behind the scenes,
+to which it forwards most of the parameters in `%args`. Any parameter
+described in [Ordeal::Model::ShuffleSet](https://metacpan.org/pod/Ordeal::Model::ShuffleSet) and not below is a
+documentation bug!
 
-    my $iterator = $o->get_shuffled_cards($id, %args);
-    while (defined(my $card = $iterator->())) {
-       say $card->id;
-    }
+Supported keys are:
 
-Supported keys in `%args` are:
+- `auto_reshuffle`
+
+    automatically reshuffle the whole set after each draw (allows easy
+    simulation of dice).
+
+- `items`
+
+    reference to an array of items to be part of the
+    [Ordeal::Model::ShuffleSet](https://metacpan.org/pod/Ordeal::Model::ShuffleSet). The exact shape of
+    an input item is described in [Ordeal::Model::ShuffleSet](https://metacpan.org/pod/Ordeal::Model::ShuffleSet); in this
+    context, it suffices to say that you can provide a list of plain deck
+    identifiers and they will be turned into shuffles;
+
+- `default_n_draw`
+
+    the default number of cards to be drawn from a shuffle. Defaults to
+    `undef` (i.e. it will translate to whatever default is the shuffle).
 
 - `n`
 
-    integer, indicates how many cards to return from the deck. Defaults to
-    `undef` which means the whole deck.
+    call [Ordeal::Model::ShuffleSet::draw](https://metacpan.org/pod/Ordeal::Model::ShuffleSet::draw) this number of times. Defaults
+    to `1`.
 
 - `random_source`
 
-    something resembling the interface exposed by
-    [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20). Possibly that.
+    a default random source to be used in common by all shuffles. Any specific
+    random source set in a definition overrides this, even an explicit
+    `undef` taht will trigger creation of a shuffle-specific random source.
+    It is not used for items passed as shuffles.
 
 - `random_source_state`
 
@@ -124,8 +139,22 @@ Supported keys in `%args` are:
 
 - `seed`
 
-    data useful for creating and seeding a random data source. It is ignored
-    if ["random\_source"](#random_source) above is present in `%args`.
+    this parameter is consumed internally in this method, and in particular
+    it is used for creating a new instance of [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20) if
+    ["random\_source"](#random_source) is not present.
+
+The list-context invocation returns the cards directly. The
+scalar-context invocation returns an iterator to go through the
+`$args{n}` draws sequentially, like this:
+
+    my $iterator = $o->get_shuffled_cards(%args);
+    while (my @cards = $iterator->()) {
+       # ... use @cards
+    }
+
+Note that the `$iterator` function always returns a list; hence, you
+will probably want to avoid to call it in scalar context, because
+otherwise it will return the number of cards of the specific draw.
 
 # BUGS AND LIMITATIONS
 

@@ -64,7 +64,6 @@ automatically reshuffle after each draw (for easier simulation of dice).
 
 create a new object, with proper "massaging" of C<%args>.
 
-
 The following keys are supported in C<%args>:
 
 =over
@@ -79,6 +78,16 @@ simulation of dice).
 reference to an array of items to be part of the set. The exact shape of
 an input item is described below; all of them will be normalized to an
 internal definition of a L<Ordeal::Model::Shuffle>.
+
+=item C<< default_n_draw >>
+
+the default number of cards to be drawn from a shuffle. Defaults to
+C<undef> (i.e. it will translate to whatever default is the shuffle).
+
+=item C<< ordeal >>
+
+an instance of C<Ordeal::Model>, used for retrieving decks in case of
+need. Optional if L</item> are always decks or shuffles themselves.
 
 =item C<< random_source >>
 

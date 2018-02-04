@@ -15,7 +15,7 @@ use List::Util qw< shuffle >;
 
 use Ordeal::Model::Card;
 use Ordeal::Model::Deck;
-use Ordeal::Model::Shuffle;
+use Ordeal::Model::ShuffleSet;
 use Ordeal::Model::ChaCha20;
 
 use experimental qw< signatures postderef >;
@@ -131,26 +131,26 @@ sub get_deck ($self, $id) {
    );
 } ## end sub get_deck
 
-sub get_shuffled_cards ($self, $deck_id, %args) {
-   my $deck    = $self->get_deck($deck_id);
+sub get_shuffled_cards ($self, %args) {
    my $random_source = $args{random_source}
       // Ordeal::Model::ChaCha20->new(seed => $args{seed});
    $random_source->restore($args{random_source_state})
       if exists $args{random_source_state};
-   my $shuffle = Ordeal::Model::Shuffle->new(
-      deck => $deck,
+
+   my $n = delete($args{n}) // 1;
+
+   my $shfls = Ordeal::Model::ShuffleSet->create(
+      %args,
       random_source => $random_source,
+      ordeal => $self,
    );
-   my $n = $args{n} // $deck->n_cards;
-   ouch 400, 'invalid number of requested cards', $args{n}
-     if $n > $shuffle->n_remaining;
-   return $shuffle->draw($n) if wantarray;
-   return sub {
-      return if $n <= 0;
-      return if $shuffle->n_remaining <= 0;
-      $n--;
-      return $shuffle->draw(1);
+
+   my $iterator = sub {
+      return if $n-- <= 0;
+      return $shfls->draw;
    };
+   return $iterator unless wantarray;
+   map { $iterator->() } 1 .. $n;
 } ## end sub get_shuffled_deck
 
 1;
