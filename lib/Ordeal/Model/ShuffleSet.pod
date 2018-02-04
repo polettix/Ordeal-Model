@@ -58,14 +58,6 @@ automatically reshuffle after each draw (for easier simulation of dice).
 
 =head1 METHODS
 
-=head2 B<< auto_reshuffle >>
-
-   my $boolean = $shfls->auto_reshuffle;
-   $shfls->auto_reshuffle($boolean);
-
-accessor for automatically calling L</reshuffle> after every invocation
-L</draw>.
-
 =head2 B<< create >>
 
    my $shfls = Ordeal::Model::ShuffleSet->create(%args);
@@ -91,8 +83,9 @@ internal definition of a L<Ordeal::Model::Shuffle>.
 =item C<< random_source >>
 
 a default random source to be used in common by all shuffles. Any specific
-random source set in a definition overrides this. If not set, each shuffle
-will have its own random source.
+random source set in a definition overrides this, even an explicit
+C<undef> taht will trigger creation of a shuffle-specific random source.
+It is not used for items passed as shuffles.
 
 =back
 
