@@ -14,6 +14,7 @@ use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
 
 has deck => (default => undef);
+has default_n_draw => (default => 1);
 has random_source => (default => undef);
 has _i => (default => undef);
 has _indexes => (default => undef);
@@ -27,7 +28,8 @@ sub BUILD ($self) {
    $self->reshuffle;
 }
 
-sub draw ($self, $n = 1) {
+sub draw ($self, $n = undef) {
+   $n //= $self->default_n_draw;
    ouch 400, 'invalid number of cards', $n
       unless $n =~ m{\A(?: 0 | [1-9]\d*)\z}mxs;
    my $deck = $self->deck;

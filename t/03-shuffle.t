@@ -8,6 +8,7 @@ use experimental qw< postderef >;
 no warnings qw< experimental::postderef >;
 
 use Ordeal::Model;
+use Ordeal::Model::Shuffle;
 
 my $dir = path(__FILE__)->parent->child('ordeal-data');
 my $model = Ordeal::Model->new(base_directory => $dir->absolute);
@@ -54,5 +55,14 @@ is_deeply \@got, [
      >
   ],
   'cards in expected order';
+
+my $shfl = Ordeal::Model::Shuffle->new(
+   deck => $model->get_deck('group1-02-all'),
+   seed => 9111972,
+   default_n_draw => 3,
+);
+
+my @three = $shfl->draw;
+is scalar(@three), 3, 'set different default for draw';
 
 done_testing;
