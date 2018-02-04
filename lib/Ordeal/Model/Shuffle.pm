@@ -13,6 +13,7 @@ use Ouch;
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
 
+has auto_reshuffle => (default => 0);
 has deck => (default => undef);
 has default_n_draw => (default => 1);
 has random_source => (default => undef);
@@ -47,7 +48,10 @@ sub draw ($self, $n = undef) {
       (my $retval, $indexes->[$j]) = $indexes->@[$j, $i--];
       push @retval, $deck->card_at($retval);
    }
-   $self->_i($i); # save for next iteration
+
+   # prepare for next call
+   $self->auto_reshuffle ? $self->shuffle : $self->_i($i);
+
    return $retval[0] if @retval == 1;
    return @retval;
 }

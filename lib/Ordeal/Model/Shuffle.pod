@@ -74,6 +74,15 @@ This method is not really supposed to be called directly.
 
 =end COMMENT
 
+=head2 B<< auto_reshuffle >>
+
+   my $boolean = $shfl->auto_reshuffle;
+   $shfl->auto_reshuffle($boolean);
+
+accessor for a flag determining whether after each L</draw>
+a L</reshuffle> should be called automatically. Setting this basically
+transforms the shuffle into a die.
+
 =head2 B<< deck >>
 
    my $deck = $shfl->deck;
@@ -102,6 +111,10 @@ draw cards from the shuffled deck.
 By default it returns one single card, honoring scalar context. You can
 optionally pass the number of cards you want, with the convention that
 C<0> means all the remaining ones.
+
+If L</auto_reshuffle> is set, after drawing the cards, but before they are
+returned, L</reshuffle> is called. Otherwise, the status is kept for the
+following call.
 
 The method will complain if the provided input is invalid, e.g. because
 it's not a number or it's out of range. You can check how many cards you
