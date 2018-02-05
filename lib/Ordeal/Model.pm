@@ -119,9 +119,15 @@ sub get_deck ($self, $id) {
    my $path = path($self->base_directory)->child(decks => $id);
    $path->exists or ouch 404, 'not found', $id;
 
-   my @cards =
-     map  { $self->get_card($_->realpath->basename) }
-     sort { $a->basename cmp $b->basename } $path->children;
+   my @cards;
+   if ($path->is_dir) {
+      @cards =
+        map  { $self->get_card($_->realpath->basename) }
+        sort { $a->basename cmp $b->basename } $path->children;
+   }
+   else {
+      @cards = $path->lines({chomp => 1});
+   }
 
    return Ordeal::Model::Deck->new(
       group => $group,
