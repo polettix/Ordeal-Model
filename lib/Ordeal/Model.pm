@@ -122,12 +122,13 @@ sub get_deck ($self, $id) {
    my @cards;
    if ($path->is_dir) {
       @cards =
-        map  { $self->get_card($_->realpath->basename) }
+        map  { $_->realpath->basename }
         sort { $a->basename cmp $b->basename } $path->children;
    }
    else {
       @cards = $path->lines({chomp => 1});
    }
+   $_ = $self->get_card($_) for @cards;
 
    return Ordeal::Model::Deck->new(
       group => $group,
