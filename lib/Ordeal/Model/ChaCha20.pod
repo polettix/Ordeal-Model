@@ -51,6 +51,13 @@ This method is used during construction and is not to be called directly.
 
 =end COMMENT
 
+=head2 B<< clone >>
+
+   my $other = $rs->clone;
+
+create a clone of the random source, aligned at the very same state. The two
+sources will act independently after the cloning.
+
 =head2 B<< freeze >>
 
    my $hex = $rs->freeze;

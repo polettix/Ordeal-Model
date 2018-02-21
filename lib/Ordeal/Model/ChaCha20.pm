@@ -44,6 +44,8 @@ sub BUILD ($self) {
    $self->reset;
 } ## end sub BUILD ($self)
 
+sub clone ($self) { return ref($self)->new->restore($self->freeze) }
+
 sub freeze ($self) {
    my $release = unpack 'H*', RELEASE;
    my $state = unpack 'H*', join '', pack 'N*', $self->_state->@*;
