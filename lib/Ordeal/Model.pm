@@ -148,6 +148,7 @@ sub get_shuffled_cards ($self, %args) {
 
    my $shfls = Ordeal::Model::ShuffleSet->create(
       %args,
+      default_n_draw => 1,
       random_source => $random_source,
       ordeal => $self,
    );
