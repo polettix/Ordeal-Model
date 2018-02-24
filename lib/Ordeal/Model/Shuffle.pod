@@ -24,7 +24,7 @@ Ordeal::Model::Shuffle - Manage shuffling of Decks
    my @rest = $shuffler->draw($remaining);
 
    # start over, no reset on the random generator though
-   $shuffler->reshuffle;
+   $shuffler->shuffle;
    my $one_card = $shuffler->draw;
 
    # shortcut to take the rest
@@ -60,9 +60,16 @@ constructor if you want, the only requirement is that it supports an
 C<int_rand($min, $max)> method for generating integers between C<$min> and
 C<$max>, both included.
 
-You can reshuffle the deck via method L</reshuffle>. You can also reset
+You can reshuffle the deck via method L</shuffle>. You can also reset
 the whole thing to its initial state via method L</reset>; in this case,
 the L</random_source> MUST support a C<reset()> method as well.
+
+You can also set a I<sorted shuffle> by calling L</sort>. This will make so
+that L</draw> returns cards in the same order as they appear in L</deck>.
+Calling L</shuffle> reshuffles the cards again; this also happens if
+L</auto_reshuffle> is set (because it's called at the end of each L</draw>). By
+default, the constructor will give you a shuffled shuffle though, so L</sort>
+must be called explicitly.
 
 =head1 METHODS
 
@@ -80,8 +87,36 @@ This method is not really supposed to be called directly.
    $shfl->auto_reshuffle($boolean);
 
 accessor for a flag determining whether after each L</draw>
-a L</reshuffle> should be called automatically. Setting this basically
+a L</shuffle> should be called automatically. Setting this basically
 transforms the shuffle into a die.
+
+=head2 B<< clone >>
+
+   my $other = $shfl->clone(%args);
+
+clone the shuffle, including the current shuffling state (which is
+arguably overkill).
+
+You can pass the following overriding arguments:
+
+=over
+
+=item C<< auto_reshuffle >>
+
+whether L</shuffle> should be called upon each L</draw> or not.
+
+=item C<< default_n_draw >>
+
+the number of cards to draw by default.
+
+=item C<< random_source >>
+
+the random source object to use (or C<undef> if the default one is OK).
+If you don't pass this parameter, the L</clone> method will try to call
+a C<clone> method on whatever is set as random source in the generating
+object, to make sure it does support this operation.
+
+=back
 
 =head2 B<< deck >>
 
@@ -90,7 +125,7 @@ transforms the shuffle into a die.
 
 accessor to the L<Ordeal::Model::Deck> object (or whatever supports its
 interface). You shouldn't really I<set> it after the object has been
-created; if you really want to, remember to at least L</reshuffle>.
+created; if you really want to, remember to at least L</shuffle>.
 
 =head2 B<< default_n_draw >>
 
@@ -106,19 +141,29 @@ draw (i.e. when you don't pass an explicit number to L</draw>).
    my @cards = $shfl->draw($n); # get n cards (n can be 1 of course)
    my @all   = $shfl->draw(0);  # get all cards
 
-draw cards from the shuffled deck.
+draw cards from the (possibly shuffled) deck.
 
-By default it returns one single card, honoring scalar context. You can
-optionally pass the number of cards you want, with the convention that
-C<0> means all the remaining ones.
+By default it returns L</default_n_draw>, honoring scalar context. You can
+optionally pass the number of cards you want, with the convention that C<0>
+means all the remaining ones.
+
+Depending on whether L</sort> or L</shuffle> was called last, the returned
+cards will be sorted or shuffled.
 
 If L</auto_reshuffle> is set, after drawing the cards, but before they are
-returned, L</reshuffle> is called. Otherwise, the status is kept for the
+returned, L</shuffle> is called. Otherwise, the status is kept for the
 following call.
 
 The method will complain if the provided input is invalid, e.g. because
 it's not a number or it's out of range. You can check how many cards you
 can still draw via L</n_remaining>.
+
+=head2 B<< is_sorted >>
+
+   say 'sorted!' if $shfl->is_sorted;
+
+boolean flag to check whether a shuffle is sorted (i.e. L</sort> was
+called last) or not (i.e. L</shuffle> was called last).
 
 =head2 B<< n_remaining >>
 
@@ -153,18 +198,27 @@ might suffer from it because of the possible reduced randomness.
    $shfl->reset;
 
 completely reset the object. This means calling the C<reset> method over
-the L</random_source> object, as well as L</reshuffle> the deck.
+the L</random_source> object, as well as L</shuffle> the deck.
 
-=head2 B<< reshuffle >>
+=head2 B<< shuffle >>
 
-   $shfl->reshuffle;
+   $shfl->shuffle;
 
-reshuffle the shuffled deck, re-integrating all drawn cards (if any).
+(re)shuffle the shuffled deck, re-integrating all drawn cards (if any).
 
 As an example, if you have a deck with C<10> cards and you already called
 L</draw> to take C<7> of them, L</n_remaining> will tell you that there
 are C<3> left. Calling this method is the same as re-integrating the other
 C<7> into the deck, and shuffling it again.
+
+=head2 B<< sort >>
+
+   $shfl->sort;
+
+set a special shuffle mode where cards from L</draw> will appear in the same
+order as in L</deck>. Calling L</shuffle> (either directly, or implicitly via
+L</auto_shuffle>) resets the shuffle to a more random attitude. Calling this
+method always makes L</draw> restart from the first card in L</deck>.
 
 =head1 BUGS AND LIMITATIONS
 
