@@ -38,6 +38,15 @@ opaque data, so you can abuse it.
 
 =head1 METHODS
 
+=begin COMMENT
+
+=head2 B<< BUILD >>
+
+Called upon construction.
+
+=end COMMENT
+
+
 =head2 B<< card_at >>
 
    my $card = $deck->card_at($i);
@@ -48,10 +57,11 @@ exception.
 
 =head2 B<< cards >>
 
-   my $cards_aref = $deck->cards;
-   $deck->cards(\@cards);
+   my @cards = $deck->cards;
+   $deck->cards(@cards);
 
-accessor for the list of cards.
+accessor for the list of cards. Note that it accepts and returns a list
+not an array reference.
 
 =head2 B<< group >>
 
