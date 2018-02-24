@@ -29,7 +29,7 @@ is $deck->id, 'group1-02-all', 'deck id';
 is $deck->group, 'group1', 'deck group';
 is $deck->n_cards, 5, 'cards in loaded deck';
 
-is_deeply [ map {$_->id} $deck->cards->@* ],
+is_deeply [ map {$_->id} $deck->cards ],
    [
       qw<
          group1-01-whatevah.png
