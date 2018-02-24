@@ -47,7 +47,7 @@ sub BUILD ($self) {
 sub clone ($self) { return ref($self)->new->restore($self->freeze) }
 
 sub freeze ($self) {
-   my $release = unpack 'H*', RELEASE;
+   my $release = unpack 'H*', pack 'C*', RELEASE;
    my $state = unpack 'H*', join '', pack 'N*', $self->_state->@*;
    my $buffer = $self->_buffer;
    my $buflen = unpack 'H*', pack 'N', length $buffer;
@@ -133,7 +133,7 @@ sub _restore_01 ($self, $opaque) {
 }
 
 sub restore ($self, $opaque) {
-   my $release = substr $_, 0, 2, '';
+   my $release = substr $opaque, 0, 2, '';
    my $method = $self->can("_restore_$release")
       or ouch 400, 'cannot restore release', $release;
    $self->$method($opaque);
