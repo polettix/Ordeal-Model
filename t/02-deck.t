@@ -27,7 +27,7 @@ lives_ok { $deck = $model->get_deck('group1-02-all') }
 is $deck->name, 'all', 'deck name';
 is $deck->id, 'group1-02-all', 'deck id';
 is $deck->group, 'group1', 'deck group';
-is scalar($deck->cards->@*), 5, 'cards in loaded deck';
+is $deck->n_cards, 5, 'cards in loaded deck';
 
 is_deeply [ map {$_->id} $deck->cards->@* ],
    [
