@@ -42,7 +42,6 @@ sub parse ($self, $text) {
       $ast = $cache->{$text};
    }
    else {
-      say 'parsing...';
       $ast = Ordeal::Model::Shuffler::Parser::PARSE($text);
 
       my $max = $self->max_cache;

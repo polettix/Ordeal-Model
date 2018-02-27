@@ -170,9 +170,14 @@ sub _atom {
 }
 
 sub _atom_base {
+   state $sub_expression = sub ($rtext) {
+      state $seq = __sequencer('(', _expression(), ')');
+      my $match = $seq->($rtext) or return;
+      return $match->[1];
+   };
    state $retval = __alternator(
       _identifier(),
-      __sequencer('(', _expression(), ')'),
+      $sub_expression,
    );
 }
 
