@@ -1,0 +1,357 @@
+=pod
+
+=for vim
+   vim: tw=72 ts=3 sts=3 sw=3 et ai :
+
+=encoding utf8
+
+=head1 NAME
+
+Ordeal::Model::Shuffler - Perform shuffling of Decks
+
+=head1 SYNOPSIS
+
+   use Ordeal::Model::Shuffler;
+   use Ordeal::Model;
+
+   my $model = Ordeal::Model->new(...);
+   my $shuffler = Ordeal::Model::Shuffler->new(
+      model => $model, # mandatory for actual evaluations
+      random_source => $rs, # optional, defaults to auto-generated
+      max_cache => 5, # number of cached parses, defaults to none 
+   );
+
+   my $expression = '(deck1 + deck2)@[0..3] + die6@[0]';
+   my $abstract_syntax_tree = $shuffler->parse($expression);
+
+   my $shuffle = $shuffler->evaluate($abstract_syntax_tree);
+   my $other_shuffle = $shuffler->evaluate($expression);
+
+   # see Ordeal::Model::Shuffle, these ones default to draw
+   # everyting they have inside
+   my @cards = $shuffle->draw;
+
+
+=head1 DESCRIPTION
+
+This class allows parsing (via L<Ordeal::Model::Shuffler::Parser>) and
+evaluating (via L<Ordeal::Model::Shuffler::Evaluator>) expressions that
+represent operations over L<Ordeal::Model::Shuffle>s (which can be seen as
+L<Ordeal::Model::Deck>s with a twist).
+
+If you are in a hurry, create an object passing an L<Ordeal::Model> object
+and use L</evaluate> directly on the textual form of your expression
+(whose format is described in L</"Expressions">). Otherwise... read on.
+
+There are two main L</METHODS> (discouting the accessors): L</parse>, that
+allows you to parse a textual expression into an intermediate form (a.k.a.
+I<abstract syntax tree> or L<AST>) that is evaluatable, and L</evaluate>,
+that evaluates an expression (either in the AST form or in the textual
+form, taking care to call L</parse> if needed).
+
+=head2 Construction
+
+The L</evaluate> method needs an L<Ordeal::Model> object to resolve and
+load decks, so your better chance is to provide it during construction via
+parameter L<model>. You can also provide it later, or change it, although
+you're on your own.
+
+=head2 Expressions
+
+Expressions are parsed according to the following grammar (sorry if it
+might break Backus-Naur form, patches welcome):
+
+   EXPRESSION := ADDEND (ADD_OP ADDEND)*
+   ADD_OP     := "+" | "-"
+   ADDEND     := (POSITIVE_INT MULT_OP)* ATOM (MULT_OP POSITIVE_INT)*
+   MULT_OP    := "*" | "x"
+   ATOM       := ATOM_BASE (SLICER | SORTER | SHUFFLER)*
+   ATOM_BASE  := IDENTIFIER | "(" EXPRESSION ")"
+   IDENTIFIER := TOKEN | QUOTED_STRING
+   SHUFFLER   := "@"
+   SLICER     := "[" INTS_LIST "]"
+   INTS_LIST  := INT_ITEM ("," INT_ITEM)* 
+   INT_ITEM   := INT ".." INT | INT
+   INT        := SIMPLE_INT | RANDOM_INT
+   SIMPLE_INT := /0|-?[1-9][0-9]*/
+   RANDOM_INT := "{" INTS_LIST "}"
+   SORTER     := "!"
+   TOKEN      := /[a-zA-Z]\w*/
+   QUOTED_STRING := /"([^\\"]|\\.)*"/
+
+Things that resemble a regular expression actually represent a regular
+expression. You might also notice that C<POSITIVE_INT> is not defined...
+it's just the same as C<INT>, with the restriction that it can only take
+positive values.
+
+Still confused? A few examples will follow shortly, with a due
+introduction: most constructs above are supposed to eventually represent
+an L<Ordeal::Model::Shuffle>, with the exception of what doesn't.
+
+You can refer to L<Ordeal::Model::Deck>s by their identifier, which is
+what C<IDENTIFIER> is for. So, the following expressions:
+
+   # just one plain token
+   die6
+
+   # a more complicated identifier, needs quoting
+   "deck of 51"
+
+represent a deck of that identifier that will be eventually "cloaked" by
+a shuffle (which supports operations like sorting, shuffling, etc.).
+
+What can you do on a shuffle, then? A few things:
+
+   # ensure cards in the shuffle are "ordered", whatever it means
+   die6!
+
+   # shuffle them randomly!
+   die21@
+
+   # get one out of it
+   die8[0]
+
+These I<unary> operators can be combined in any order (although they don't
+generally commute and also although it might not make too much sense):
+
+   # draw a random die face
+   die6@[0]
+
+   # take exactly the second die face
+   die6![1]
+
+Getting things out of shuffles can be more complicated. First of all,
+you're not restricted to one single item only, but can use a list of
+single indexes or ranges:
+
+   # take the first three cards out of shuffled deck
+   Italians@[0..2]
+
+   # isolate hearts and clubs
+   French![0..12,26..38]
+
+In addition, you can spice things up using random indexes. The general
+notation is to provide a list of choices surrounded by curly braces, so
+for example you can draw a face from a die also like this:
+
+   # roll a die
+   die6[{0..5}]
+
+The list is provided in the same way as the list of indexes for slices, so
+it's recursive:
+
+   # it's a crazy world you know
+   die6[{{0..2},{3..5}}]
+
+Additionally, you can also repeat indexes and they will "weight" more in
+the random choice:
+
+   # 1 gets 50% probability, the others 10% each 
+   die6[{1,1,1,1,0..5}]
+
+Back to ranges (or I<slices>, actually), they respect the way they are
+built and also support repetition, so you can simulate taking cards from
+several equal decks and create a new one:
+
+   # mix two French decks
+   French[0..51,0..51]@
+
+Negative identifiers count backwards, so C<-1> is the last element in the
+shuffle. This can be used in ranges too, like this:
+
+   # same as before, but fancier
+   French[0..-1,0..-1]@
+
+What if you want to mix cards from different decks? This is where the
+summation comes handy:
+
+   # same as before... sort of, this is still two decks one after the
+   # other
+   French + French
+
+   # join two different decks
+   deck1 + deck2
+
+The sum returns a new shuffle that can be further manipulated with unary
+operators. To do this, you will need to enclose the expression in round
+parentheses though, because unary operators have the stricter precedence
+allowed:
+
+   # mix two decks of French cards, take 3
+   (French + French)@
+
+You can also remove cards you don't need, which is where having sorted
+shuffles comes in handy (even though it seems a bit like an oximoron):
+
+   # French cards, minus aces
+   French - French[0,13,26,39]
+
+Whenever you try to subtract something that's not in the left hand
+operand... this is simply ignored. This might lead to surprises, so be
+aware that additions and subtractions don't commute in the general case:
+
+   # WTF? Only aces are left!
+   French - French[0,13,26,39] - French + French[0,13,26,39]
+
+You can also "repeat" things, in two different ways. The simpler one is to
+just blindly copy something:
+
+   # yet another deck from 2 decks of French cards, shuffled
+   (French x 2)@
+
+   # a strange die with a load on a random face, I guess the whole thing
+   # behaves like a fair die if re-evaluated every time completely
+   (die6[{0..5}] x 4 + die6)[{0..5}]
+
+The other one is subtler, as it re-evaluates the whole expression a number
+of times. For example, this is a way to roll three dice:
+
+   # roll three independent dice
+   die6@[0] * 3
+
+(Saying L<independent> is a bit far fetched, as they rely on the same
+random source... but you get the idea). It will generally give you
+different numbers (with some probability to get couples or a triple, you
+know), as opposed to:
+
+   # repeat the result of a single roll for three times
+   die6@[0] x 3
+
+where you get the same result repeated three times (like in "1 1 1").
+These multipliers can also appear I<before> the expression, so rolling
+three dice can also be written as:
+
+   # pre-multiplication works too
+   3 * die6@[0]
+
+For reasons that you can infer yourself, only positive integers are
+allowed in multiplications.
+
+Associativity is from the I<central atom> first to the left, then to the
+right, so the following are equivalent:
+
+   # whatever they mean, the following expressions are equivalent
+     2 *  3 x die6   * 4  x 5
+   ((2 * (3 x die6)) * 4) x 5
+
+Whitespace is disregarded, apart inside quoted identifiers, so the
+following expressions are the same:
+
+   3*die6@[0]
+   3   *   die6  @  [ 0   ]
+
+but the following are not:
+
+   3 * "die with 6 faces     "@[0]
+   3 * "  die with 6 faces   "@[0]
+
+=head2 Caching
+
+This class provide a method L</parse> for simply parsing an
+L</Expression>, without evaluating it. You might want to do this if you
+want to reuse the same expression over and over, and avoid to re-parse it
+every time. The return value from L</parse> is an array of arrays that
+represents an I<abstract syntax tree> equivalent to the input expression.
+
+You can obtain the same speed-up without the hassle of keeping the AST by
+setting a non-zero value for L</max_cache>:
+
+   my $shuffler = Ordeal::Model::Shuffler->new(max_cache => $n, ...);
+
+Then, up to C<$n> expressions will be cached, meaning that their parsing
+is reused over and over. You can have indefinite caching by setting C<$n>
+to a negative number.
+
+
+=head1 METHODS
+
+=head2 B<< evaluate >>
+
+   my $shuffle = $shuffler->evaluate($expression_or_ast);
+
+Evaluate an input expression, or the AST resulting from its parsing. Calls
+L</parse> if the input is not already in AST form. See L</Expressions>.
+
+=head2 B<< max_cache >>
+
+   Ordeal::Model::Shuffler->new(max_cache => $n, ...); # in constructor
+
+   my $n = $shuffler->max_cache;
+   $shuffler->max_cache($n);
+
+Accessor for setting/getting the size of the allowed cache for parsing.
+See L</Caching>.
+
+Changing to a lower value after the cache is filled does I<not> remove
+items.
+
+=head2 B<< model >>
+
+   Ordeal::Model::Shuffler->new(model => $m, ...); # in constructor
+
+   my $model = $shuffler->model;
+   $shuffler->model($model);
+
+Accessor for the model. This is needed by L</evaluate> for resolving decks
+and create I<basic> shuffles to manipulate.
+
+=head2 B<< parse >>
+
+   my $ast = $shuffler->parse($expression);
+
+Parse an expression and return an AST suitable for L</evaluate>. Can
+leverage a cache, and set it (within the bound provided by L</max_cache>)
+to avoid doing actual parsing work.
+
+=head2 B<< random_source >>
+
+   # in constructor
+   Ordeal::Model::Shuffler->new(random_source => $rs, ...);
+
+   my $rs = $shuffler>random_source;
+   $shuffler>random_source($rs);
+
+Accessor for the source of randomness. It defaults to an instance of
+L<Ordeal::Model::ChaCha20>, set at construction time.
+
+
+=head1 BUGS AND LIMITATIONS
+
+The code leverages some experimental Perl features like signatures and
+postderef; for this reason, at least perl 5.20 will be needed.
+
+Report bugs through GitHub (patches welcome) at
+L<https://github.com/polettix/Ordeal-Model>.
+
+=head1 SEE ALSO
+
+The real workhorse modules are:
+
+=over
+
+=item *
+
+L<Ordeal::Model::Shuffler::Parser>
+
+=item *
+
+L<Ordeal::Model::Shuffler::Evaluator>
+
+=back
+
+=head1 AUTHOR
+
+Flavio Poletti <polettix@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2018 by Flavio Poletti <polettix@cpan.org>
+
+This module is free software. You can redistribute it and/or modify it
+under the terms of the Artistic License 2.0.
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+
+=cut
