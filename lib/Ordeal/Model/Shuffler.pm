@@ -46,7 +46,7 @@ sub parse ($self, $text) {
 
       my $max = $self->max_cache;
       $cache->{$text} = $ast
-         if ($max == 0) || (scalar(keys $cache->%*) < $max);
+         if ($max < 0) || (scalar(keys $cache->%*) < $max);
    }
    return $ast;
 }
