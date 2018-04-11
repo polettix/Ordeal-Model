@@ -77,6 +77,10 @@ sub _unroll ($self, @potentials) {
    } @potentials;
 }
 
+sub math_subtract ($self, $t1, $t2) {
+   return $self->_get_integer($t1) - $self->_get_integer($t2);
+}
+
 sub random ($self, @potentials) {
    my @candidates = $self->_unroll(@potentials);
    return $candidates[$self->_rs->int_rand(0, $#candidates)];

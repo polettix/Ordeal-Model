@@ -36,6 +36,7 @@ sub evaluate ($self, $what) {
 }
 
 sub parse ($self, $text) {
+   ouch 400, 'undefined input expression to parse()' unless defined $text;
    my $cache = $self->_cache;
    my $ast;
    if (exists $cache->{$text}) {

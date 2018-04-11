@@ -14,6 +14,7 @@ no warnings qw< experimental::signatures experimental::postderef >;
 
 use overload
   ne => sub { shift->compare_ne(@_) },
+  bool => sub { return 1 },
   fallback => 0;    # false but defined, disables Magic Autogeneration
 
 has content_type => (default => undef);

@@ -213,11 +213,20 @@ sub _identifier {
 
 sub _int { state $r = __alternator(_simple_int(), _random_int()) }
 
-sub _int_item { state $r = __alternator(_int_range(), _int()) }
+sub _int_item { state $r = __alternator(_int_sr(), _int_range(), _int()) }
 
 sub _int_item_list { state $r = __lister(_int_item(), ',') }
 
 sub _int_range { state $r = _ranger((_int()) x 2) }
+
+sub _int_sr {
+   state $r = sub ($rtext) {
+      state $seq = __sequencer('#', _positive_int());
+      my $list = $seq->($rtext) or return;
+      my ($n) = ___promote_simple_ints($list->[1]);
+      return [range => 0 => [math_subtract => $n => 1]];
+   }
+}
 
 sub _positive_int {
    state $r = __alternator(_positive_simple_int(), _positive_random_int());

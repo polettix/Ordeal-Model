@@ -138,39 +138,21 @@ sub get_deck ($self, $id) {
    );
 } ## end sub get_deck
 
-sub get_shuffled_cards_old ($self, %args) {
-   my $random_source = $args{random_source}
-      // Ordeal::Model::ChaCha20->new(seed => $args{seed});
-   $random_source->restore($args{random_source_state})
-      if exists $args{random_source_state};
-
-   my $n = delete($args{n}) // 1;
-
-   my $shfls = Ordeal::Model::ShuffleSet->create(
-      default_n_draw => 1,
-      random_source => $random_source,
-      %args,
-      ordeal => $self,
-   );
-
-   my $iterator = sub {
-      return if $n-- <= 0;
-      return $shfls->draw;
-   };
-   return $iterator unless wantarray;
-   map { $iterator->() } 1 .. $n;
-} ## end sub get_shuffled_deck
-
 sub get_shuffled_cards ($self, %args) {
    my $random_source = $args{random_source}
       // Ordeal::Model::ChaCha20->new(seed => $args{seed});
    $random_source->restore($args{random_source_state})
       if exists $args{random_source_state};
 
-   return Ordeal::Model::Shuffler->new(
+   my $shuffle = Ordeal::Model::Shuffler->new(
       random_source => $random_source,
       model => $self,
-   )->evaluate($args{expression})->draw;
+   )->evaluate($args{expression});
+   return $shuffle->draw if wantarray;
+   return sub {
+      return unless $shuffle->n_remaining;
+      return $shuffle->draw(@_);
+   };
 }
 
 1;

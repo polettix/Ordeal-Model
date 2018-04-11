@@ -34,6 +34,8 @@ the visit of the AST during L</EVALUATE>:
 
 =over
 
+=item B<< math_subtract >>
+
 =item B<< random >>
 
 =item B<< range >>

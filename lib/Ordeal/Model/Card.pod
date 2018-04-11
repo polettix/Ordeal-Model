@@ -45,6 +45,13 @@ opaque data, so you can abuse it.
 
 =head1 METHODS
 
+=head2 B<< compare_ne >>
+
+   my $bool = $obj->compare_ne($other_obj);
+
+compare against C<$other_obj>, returns I<true> if the two are different.
+Relies on comparison of L</id>s, but can be overloaded in subclasses.
+
 =head2 B<< content_type >>
 
    my $ct = $card->content_type;
