@@ -11,7 +11,6 @@ use English qw< -no_match_vars >;
 use Ouch;
 use Mo qw< default >;
 use Path::Tiny;
-use List::Util qw< shuffle >;
 
 use Ordeal::Model::Card;
 use Ordeal::Model::Deck;
@@ -147,9 +146,9 @@ sub get_shuffled_cards ($self, %args) {
    my $n = delete($args{n}) // 1;
 
    my $shfls = Ordeal::Model::ShuffleSet->create(
-      %args,
       default_n_draw => 1,
       random_source => $random_source,
+      %args,
       ordeal => $self,
    );
 
