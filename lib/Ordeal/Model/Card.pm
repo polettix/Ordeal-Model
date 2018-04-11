@@ -13,6 +13,10 @@ use Ouch;
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
 
+use overload
+  ne => sub { shift->compare_ne(@_) },
+  fallback => 0;    # false but defined, disables Magic Autogeneration
+
 has content_type => (default => undef);
 has group => (default => '');
 has id => (default => undef);
