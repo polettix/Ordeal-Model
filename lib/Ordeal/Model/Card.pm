@@ -8,7 +8,6 @@ use warnings;
 { our $VERSION = '0.001'; }
 use English qw< -no_match_vars >;
 use Mo qw< default >;
-use Ouch;
 
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
