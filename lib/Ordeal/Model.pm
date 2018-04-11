@@ -15,6 +15,7 @@ use Path::Tiny;
 use Ordeal::Model::Card;
 use Ordeal::Model::Deck;
 use Ordeal::Model::ShuffleSet;
+use Ordeal::Model::Shuffler;
 use Ordeal::Model::ChaCha20;
 
 use experimental qw< signatures postderef >;
@@ -137,7 +138,7 @@ sub get_deck ($self, $id) {
    );
 } ## end sub get_deck
 
-sub get_shuffled_cards ($self, %args) {
+sub get_shuffled_cards_old ($self, %args) {
    my $random_source = $args{random_source}
       // Ordeal::Model::ChaCha20->new(seed => $args{seed});
    $random_source->restore($args{random_source_state})
@@ -159,5 +160,17 @@ sub get_shuffled_cards ($self, %args) {
    return $iterator unless wantarray;
    map { $iterator->() } 1 .. $n;
 } ## end sub get_shuffled_deck
+
+sub get_shuffled_cards ($self, %args) {
+   my $random_source = $args{random_source}
+      // Ordeal::Model::ChaCha20->new(seed => $args{seed});
+   $random_source->restore($args{random_source_state})
+      if exists $args{random_source_state};
+
+   return Ordeal::Model::Shuffler->new(
+      random_source => $random_source,
+      model => $self,
+   )->evaluate($args{expression})->draw;
+}
 
 1;
