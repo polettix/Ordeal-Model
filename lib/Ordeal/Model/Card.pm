@@ -21,6 +21,8 @@ has group        => (default => '');
 has id           => (default => undef);
 has name         => (default => '');
 
+sub compare_ne ($self, $other, $x) { return $self->id ne $other->id }
+
 sub data ($self, $data = undef) {
    $self->{data} = $data if @_ > 1;
    $self->{data} = $self->{data}->($self) if ref $self->{data};
