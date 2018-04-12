@@ -6,9 +6,10 @@ use Path::Tiny;
 use Ouch;
 
 use Ordeal::Model;
+use Ordeal::Model::Backend::PlainFile;
 
 my $dir = path(__FILE__)->parent->child('ordeal-data');
-my $model = Ordeal::Model->new(base_directory => $dir->absolute);
+my $model = Ordeal::Model->new(Ordeal::Model::Backend::PlainFile->new(base_directory => $dir->absolute));
 
 isa_ok $model, 'Ordeal::Model';
 
