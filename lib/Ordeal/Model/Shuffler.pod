@@ -166,7 +166,15 @@ There is also a shorthand for getting the I<first N> cards in a shuffle, like
 this:
 
    # get 9 random cards, same as French@[0..8] but shorter and cleaner
+   French@9
+
+   # also present with alternative syntax, again same as French@[0..8]
    French@[#9]
+
+Note the difference: C<"deck"9> takes the first 9 cards from C<deck>,
+while C<deck[9]> takes the 10th card only. The double quotes in the
+first case are necessary to separate the deck name from the number of
+cards to deal.
 
 What if you want to mix cards from different decks? This is where the
 summation comes handy:

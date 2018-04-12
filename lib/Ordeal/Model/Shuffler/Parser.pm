@@ -182,7 +182,7 @@ sub _atom_base {
 }
 
 sub _atom_unary {
-   state $r = __alternator(_slicer(), _sorter(), _shuffler());
+   state $r = __alternator(_sslicer(), _slicer(), _sorter(), _shuffler());
 }
 
 sub _expression {
@@ -282,6 +282,15 @@ sub _slicer {
 }
 
 sub _sorter { state $r = __exact('!', 'sort') }
+
+sub _sslicer {
+   state $r = sub ($rtext) {
+      state $catcher = _int();
+      my $catched = $catcher->($rtext) or return;
+      my ($n) = ___promote_simple_ints($catched);
+      return [slice => [range => 0 => [math_subtract => $n => 1]]];
+   };
+}
 
 sub _token { state $r = __regexper(qr{([a-zA-Z]\w*)}) }
 
