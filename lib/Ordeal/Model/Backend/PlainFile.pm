@@ -40,7 +40,7 @@ sub card ($self, $id) {
    my ($name, $extension) = $id =~ m{\A (.*) \. (.*) \z}mxs
       or ouch 400, 'invalid identifier', $id;
    my $content_type = $self->content_type_for($extension);
-   my $path = $self->path_for(card => $id);
+   my $path = $self->path_for(cards => $id);
    return Ordeal::Model::Card->new(
       content_type => $content_type,
       group        => '',

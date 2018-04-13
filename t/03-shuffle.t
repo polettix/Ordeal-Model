@@ -8,23 +8,28 @@ use experimental qw< postderef >;
 no warnings qw< experimental::postderef >;
 
 use Ordeal::Model;
+use Ordeal::Model::Backend::PlainFile;
 use Ordeal::Model::Shuffle;
 
-my $dir = path(__FILE__)->parent->child('ordeal-data');
-my $model = Ordeal::Model->new(base_directory => $dir->absolute);
+my $dir   = path(__FILE__)->parent->child('ordeal-data');
+my $model = Ordeal::Model->new(
+   backend => Ordeal::Model::Backend::PlainFile->new(
+      base_directory => $dir->absolute
+   )
+);
 
 isa_ok $model, 'Ordeal::Model';
 
 throws_ok { $model->get_shuffled_cards() }
-   qr{undefined input expression}, 'no input expression';
+qr{undefined input expression}, 'no input expression';
 
 my $shuffled;
 lives_ok {
    $shuffled = $model->get_shuffled_cards(
       expression => '"group1-02-all"@[#5]',
-      seed => 9111972,
-   )
-}
+      seed       => 9111972,
+     )
+} ## end lives_ok
 'valid deck is found and shuffled';
 isa_ok $shuffled, 'CODE';
 
@@ -36,7 +41,7 @@ is scalar(@got), 5, 'cards in shuffled deck';
 
 my @shuffled = $model->get_shuffled_cards(
    expression => '"group1-02-all"@[#5]',
-   seed => 9111972,
+   seed       => 9111972,
 );
 is scalar(@shuffled), 5, 'same number of cards in list invocation';
 
@@ -58,8 +63,8 @@ is_deeply \@got, [
   'cards in expected order';
 
 my $shfl = Ordeal::Model::Shuffle->new(
-   deck => $model->get_deck('group1-02-all'),
-   seed => 9111972,
+   deck           => $model->get_deck('group1-02-all'),
+   seed           => 9111972,
    default_n_draw => 3,
 );
 

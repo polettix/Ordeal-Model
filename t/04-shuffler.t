@@ -8,11 +8,16 @@ use experimental qw< postderef >;
 no warnings qw< experimental::postderef >;
 
 use Ordeal::Model;
+use Ordeal::Model::Backend::PlainFile;
 use Ordeal::Model::ChaCha20;
 use Ordeal::Model::Shuffler;
 
-my $dir           = path(__FILE__)->parent->child('ordeal-data');
-my $model         = Ordeal::Model->new(base_directory => $dir->absolute);
+my $dir   = path(__FILE__)->parent->child('ordeal-data');
+my $model = Ordeal::Model->new(
+   backend => Ordeal::Model::Backend::PlainFile->new(
+      base_directory => $dir->absolute
+   )
+);
 my $random_source = Ordeal::Model::ChaCha20->new(seed => 19721109);
 
 throws_ok { Ordeal::Model::Shuffler->new->evaluate('whatever') }
@@ -62,7 +67,8 @@ my $expected_ast = [
 ];
 is_deeply $ast, $expected_ast, 'parsed as expected';
 
-throws_ok { $shuffler->evaluate($ast) } qr{invalid}, 'cannot resolve deck';
+throws_ok { $shuffler->evaluate($ast) } qr{not found},
+  'cannot resolve deck';
 
 lives_ok {
    $ast = $shuffler->parse('
