@@ -1,9 +1,10 @@
 requires 'perl', '5.020000';
 
-requires 'Log::Any',   '1.705';
-requires 'Ouch',       '0.0500';
-requires 'Mo',         '0.40';
-requires 'Path::Tiny', '0.084';
+requires 'Log::Any',        '1.705';
+requires 'Ouch',            '0.0500';
+requires 'Mo',              '0.40';
+requires 'Path::Tiny',      '0.084';
+requires 'Module::Runtime', '0.014';
 
 on test => sub {
    requires 'Path::Tiny',      '0.084';
