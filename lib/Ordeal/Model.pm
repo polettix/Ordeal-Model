@@ -19,16 +19,16 @@ use Ordeal::Model::Shuffler;
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
 
-has backend => (
-   default => sub {
-      require Ordeal::Model::Backend::PlainFile;
-      return Ordeal::Model::Backend::PlainFile->new;
-   }
-);
+has 'backend';
 
 sub _backend_factory ($package, $name, @args) {
    $name = $package->resolve_backend_name($name);
    return use_module($name)->new(@args);
+}
+
+sub _default_backend ($package) {
+   require Ordeal::Model::Backend::PlainFile;
+   return Ordeal::Model::Backend::PlainFile->new;
 }
 
 sub get_card ($self, $id) { return $self->backend->card($id) }
@@ -58,6 +58,9 @@ sub new ($package, @rest) {
       $backend = blessed($b)   ? $args{backend}
         : (ref($b) eq 'ARRAY') ? $package->_backend_factory(@$b)
         :                        ouch 400, 'invalid backend';
+   }
+   elsif (scalar(keys %args) == 0) {
+      $backend = $package->_default_backend;
    }
    elsif (scalar(keys %args) == 1) {
       my ($name, $as) = %args;
