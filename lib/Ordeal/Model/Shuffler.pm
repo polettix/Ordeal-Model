@@ -10,8 +10,8 @@ use English qw< -no_match_vars >;
 use Scalar::Util qw< blessed >;
 use Mo qw< build default >;
 use Ouch;
-use Ordeal::Model::Shuffler::Evaluator;
-use Ordeal::Model::Shuffler::Parser;
+use Ordeal::Model::Evaluator;
+use Ordeal::Model::Parser;
 
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
@@ -28,7 +28,7 @@ has random_source => (
 
 sub evaluate ($self, $what) {
    my $ast = ref($what) ? $what : $self->parse($what);
-   return Ordeal::Model::Shuffler::Evaluator::EVALUATE(
+   return Ordeal::Model::Evaluator::EVALUATE(
       ast           => $ast,
       model         => $self->model,
       random_source => $self->random_source,
@@ -43,7 +43,7 @@ sub parse ($self, $text) {
       $ast = $cache->{$text};
    }
    else {
-      $ast = Ordeal::Model::Shuffler::Parser::PARSE($text);
+      $ast = Ordeal::Model::Parser::PARSE($text);
 
       my $max = $self->max_cache;
       $cache->{$text} = $ast

@@ -1,4 +1,4 @@
-package Ordeal::Model::Shuffler::Parser;
+package Ordeal::Model::Parser;
 
 # vim: ts=3 sts=3 sw=3 et ai :
 

@@ -7,11 +7,11 @@
 
 =head1 NAME
 
-Ordeal::Model::Shuffler::Parser - Parse shuffling expressions
+Ordeal::Model::Parser - Parse shuffling expressions
 
 =head1 DESCRIPTION
 
-Avoid using this module directly, see L<Ordeal::Model::Shuffler> instead.
+Avoid using this module directly, see L<Ordeal::Model> instead.
 
 =head1 METHODS
 
@@ -29,7 +29,7 @@ L<https://github.com/polettix/Ordeal-Model>.
 
 =head1 SEE ALSO
 
-L<Ordeal::Model::Shuffler>.
+L<Ordeal::Model>.
 
 =head1 AUTHOR
 

@@ -150,6 +150,9 @@ Too complicated? A few examples will hopefull help:
     # Case: key different from 'backend', points to a hash reference
     my $m4 = Ordeal::Model->new(PlainFile => {base_directory => '/some/path'});
 
+If `%args` contains nothing, then [Ordeal::Model::Backend::PlainFile](https://metacpan.org/pod/Ordeal::Model::Backend::PlainFile)
+is used with default parameters for its constructor.
+
 ## **resolve\_backend\_name**
 
     my $class_name = $model->resolve_backend_name($name);
