@@ -19,23 +19,6 @@ use Ordeal::Model::Deck;
 
 has base_directory => (default => 'ordeal-assets');
 
-sub content_type_for ($self, $extension) {
-   state $content_type_for = {
-      png => 'image/png',
-      jpg => 'image/jpeg',
-      svg => 'image/svg+xml',
-   };
-   my $content_type = $content_type_for->{$extension}
-     or ouch 400, 'invalid extension', $extension;
-   return $content_type;
-}
-
-sub path_for ($self, $type, $id) {
-   my $path = path($self->base_directory)->child($type => $id);
-   $path->exists or ouch 404, 'not found', $id;
-   return $path;
-}
-
 sub card ($self, $id) {
    my ($name, $extension) = $id =~ m{\A (.*) \. (.*) \z}mxs
       or ouch 400, 'invalid identifier', $id;
@@ -49,6 +32,17 @@ sub card ($self, $id) {
       data         => sub { $path->slurp_raw },
    );
 } ## end sub get_card
+
+sub content_type_for ($self, $extension) {
+   state $content_type_for = {
+      png => 'image/png',
+      jpg => 'image/jpeg',
+      svg => 'image/svg+xml',
+   };
+   my $content_type = $content_type_for->{lc($extension)}
+     or ouch 400, 'invalid extension', $extension;
+   return $content_type;
+}
 
 sub deck ($self, $id) {
    my $path = $self->path_for(decks => $id);
@@ -70,6 +64,12 @@ sub deck ($self, $id) {
       name  => $id,
       cards => \@cards,
    );
+}
+
+sub path_for ($self, $type, $id) {
+   my $path = path($self->base_directory)->child($type => $id);
+   $path->exists or ouch 404, 'not found', $id;
+   return $path;
 }
 
 1;
