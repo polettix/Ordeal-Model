@@ -31,12 +31,9 @@ lives_ok {
      )
 } ## end lives_ok
 'valid deck is found and shuffled';
-isa_ok $shuffled, 'CODE';
+isa_ok $shuffled, 'Ordeal::Model::Shuffle';
 
-my @got;
-while (my ($card) = $shuffled->(1)) {
-   push @got, $card;
-}
+my @got = $shuffled->draw;
 is scalar(@got), 5, 'cards in shuffled deck';
 
 my @shuffled = $model->get_shuffled_cards(

@@ -42,6 +42,7 @@
          "requires" : {
             "Log::Any" : "1.705",
             "Mo" : "0.40",
+            "Module::Runtime" : "0.014",
             "Ouch" : "0.0500",
             "Path::Tiny" : "0.084",
             "perl" : "5.020000"

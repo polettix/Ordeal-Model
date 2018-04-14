@@ -40,20 +40,21 @@ This document describes Ordeal::Model version {{[ version ]}}.
 
    use Ordeal::Model;
 
-   # get a list of all cards, either as an iterator or as a list
-   my $cards_iterator = get_cards();
-   my $card = $cards_iterator->();
-   my @cards = get_cards();
+   # leverage Ordeal::Model::Backend::PlainFile
+   my $model = Ordeal::Model->new(PlainFile => [base_directory => $dir]);
 
-   # get a list of cards, based on a query. Again, both interfaces
-   # are available, we'll use the iterator from now on
-   my $it = get_cards(query => {group => ['mine']});
-   my $it = get_cards(query => {group => ['a', 'b'], id => \@ids});
+   # get a card by identifier
+   my $card = $model->get_card($card_id);
 
-   # get one single card, by identifier. Two alternatives:
-   my $card = get_card($id);
-   my $card = get_cards(query => {id => [$id]})->();
+   # get a deck by identifier
+   my $deck = $model->get_deck($deck_id);
 
+   # get shuffled cards, via Ordeal::Model::Shuffler's "evaluate"
+   my @cards = $model->get_shuffled_cards(expression => $expr);
+
+   # useful for overriding and provide backends under different
+   # namespaces
+   my $backend_class = $model->resolve_backend_name($some_name);
 
 =head1 DESCRIPTION
 
@@ -66,72 +67,30 @@ out of them.
 
 =head2 B<< get_card >>
 
-   my $card = $o->get_card($id);
+   my $card = $model->get_card($id);
 
-get a card.
-
-=head2 B<< get_cards >>
-
-   my @cards    = $o->get_cards(%args); # list-returning interface
-   my $iterator = $o->get_cards(%args); # iterator-returning interface
-
-get a list of cards. The following keys are supported in C<%args>:
-
-=over
-
-=item C<< query >>
-
-a filtering to the queried data. This will be somehow a flux in the
-beginning, although providing either a value or a list of verbatim
-values for any field in a card SHOULD be supported and future proof.
-
-=back
+get an L<Ordeal::Model::Card> by identifier.
 
 =head2 B<< get_deck >>
 
-   my @cards    = $o->get_deck($id); # list-returning interface
-   my $iterator = $o->get_deck($id); # iterator-returning
+   my $deck = $model->get_deck($id);
 
-get a deck, ordered. See also L</get_shuffled_cards>.
+get an L<Ordeal::Model::Deck> by identifier.
 
 =head2 B<< get_shuffled_cards >>
 
-   my @cards    = $o->get_shuffled_cards(%args); # list
-   my $iterator = $o->get_shuffled_cards(%args); # scalar
+   my @cards   = $o->get_shuffled_cards(%args); # list
+   my $shuffle = $o->get_shuffled_cards(%args); # scalar
 
 get shuffled cards from one or more shuffles/decks.
-
-This method uses L<Ordeal::Model::ShuffleSet::create> behind the scenes,
-to which it forwards most of the parameters in C<%args>. Any parameter
-described in L<Ordeal::Model::ShuffleSet> and not below is a
-documentation bug!
 
 Supported keys are:
 
 =over
 
-=item C<< auto_reshuffle >>
+=item C<< expression >>
 
-automatically reshuffle the whole set after each draw (allows easy
-simulation of dice).
-
-=item C<< items >>
-
-reference to an array of items to be part of the
-L<Ordeal::Model::ShuffleSet>. The exact shape of
-an input item is described in L<Ordeal::Model::ShuffleSet>; in this
-context, it suffices to say that you can provide a list of plain deck
-identifiers and they will be turned into shuffles;
-
-=item C<< default_n_draw >>
-
-the default number of cards to be drawn from a shuffle. Defaults to
-C<undef> (i.e. it will translate to whatever default is the shuffle).
-
-=item C<< n >>
-
-call L<Ordeal::Model::ShuffleSet::draw> this number of times. Defaults
-to C<1>.
+whatever expression is good for L<Ordeal::Model::Shuffler>.
 
 =item C<< random_source >>
 
@@ -156,18 +115,99 @@ L</random_source> is not present.
 
 =back
 
-The list-context invocation returns the cards directly. The
-scalar-context invocation returns an iterator to go through the
-C<$args{n}> draws sequentially, like this:
+The list-context invocation returns the cards directly.
 
-   my $iterator = $o->get_shuffled_cards(%args);
-   while (my @cards = $iterator->()) {
-      # ... use @cards
-   }
+The scalar context invocation returns an L<Ordeal::Model::Shuffle> object
+that you can use to draw cards from, e.g.:
 
-Note that the C<$iterator> function always returns a list; hence, you
-will probably want to avoid to call it in scalar context, because
-otherwise it will return the number of cards of the specific draw.
+   my @two_cards        = $shuffle->draw(2);
+   my @three_more_cards = $shuffle->draw(3);
+
+Be careful that L<Ordeal::Model::Shuffle> will throw an exception if you
+try to draw more cards than available!
+
+=head2 B<< new >>
+
+   my $model = Ordeal::Model->new(%args); # OR
+   my $model = Ordeal::Model->new(\%args);
+
+constructor.
+
+The C<%args> hash can contain only one key/value pair. If the key is
+C<backend>, then the value MUST be either a blessed object to be used as
+backend, or an array reference with information suitable for generating
+one. In particular, the array form should contain a name that can be
+resolved through L</resolve_backend_name> as the first item, and any
+argument for the resolved class as the remaining items, in order as they
+are supposed to be consumed by its C<new> method.
+
+Otherwise, the key is considered a name suitable for
+L</resolve_backend_name>, and the associated value MUST be an array/hash
+reference that is expanded and passed to the C<new> method associated to
+the class resolved from the name.
+
+Too complicated? A few examples will hopefull help:
+
+   use Ordeal::Model::Backend::PlainFile;
+   my $pf = Ordeal::Model::Backend::PlainFile->new;
+
+   # Case: backend => $blessed_reference
+   my $m1 = Ordeal::Model->new(backend => $pf);
+
+   # Case: backend => $array_ref
+   my $m2 = Ordeal::Model->new(
+      backend => [PlainFile => base_directory => '/some/path']);
+
+   # Case: key different from 'backend', points to an array reference
+   my $m3 = Ordeal::Model->new(PlainFile => [base_directory => '/some/path']);
+
+   # Case: key different from 'backend', points to a hash reference
+   my $m4 = Ordeal::Model->new(PlainFile => {base_directory => '/some/path'});
+
+=head2 B<< resolve_backend_name >>
+
+   my $class_name = $model->resolve_backend_name($name);
+   my $class_name = $package>resolve_backend_name($name);
+
+resolve a C<$name> for a backend to use - this is a class method.
+
+The resolution process is as follows:
+
+=over
+
+=item *
+
+if C<$name> begins with a C<->, then it is considered directly the class
+name to be used after removing the initial C<-> character. Examples:
+
+   $name = '-Whatever';         # resolves to class Whatever
+   $name = '-Whatever::Module'; # resolves to class Whatever::Module
+
+=item *
+
+otherwise, if it contains C<::>, but does not begin with C<::>, then it is
+again considered as the full name to use for the class. Example:
+
+   $name = 'Whatever::Module';  # resolves to class Whatever::Module
+
+=item *
+
+otherwise, it is used to search for a candidate class, first in namespace
+C<< $package . '::Backend::' >>, then in namespace
+C<Ordeal::Model::Backend::>. Examples (assuming that the package you call
+it with is C<Ordeal::Model>):
+
+   $name = 'Whatever'; # resolves to Ordeal::Model::Backend::Whatever
+   $name = '::W::Ever': # resolves to Ordeal::Model::Backend::W::Ever
+
+=back
+
+If you want to be on the I<safe side>, always pre-pend C<::> if you want
+to activate the automatic search for a backend class, and always pre-pend
+C<-> if you want to specify the full backend class name.
+
+This method is used by L</new> behind the scenes, so you can override it
+to provide a different resolution algorithm.
 
 =head1 BUGS AND LIMITATIONS
 

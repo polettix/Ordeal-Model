@@ -31,19 +31,21 @@ This document describes Ordeal::Model version {{\[ version \]}}.
 
     use Ordeal::Model;
 
-    # get a list of all cards, either as an iterator or as a list
-    my $cards_iterator = get_cards();
-    my $card = $cards_iterator->();
-    my @cards = get_cards();
+    # leverage Ordeal::Model::Backend::PlainFile
+    my $model = Ordeal::Model->new(PlainFile => [base_directory => $dir]);
 
-    # get a list of cards, based on a query. Again, both interfaces
-    # are available, we'll use the iterator from now on
-    my $it = get_cards(query => {group => ['mine']});
-    my $it = get_cards(query => {group => ['a', 'b'], id => \@ids});
+    # get a card by identifier
+    my $card = $model->get_card($card_id);
 
-    # get one single card, by identifier. Two alternatives:
-    my $card = get_card($id);
-    my $card = get_cards(query => {id => [$id]})->();
+    # get a deck by identifier
+    my $deck = $model->get_deck($deck_id);
+
+    # get shuffled cards, via Ordeal::Model::Shuffler's "evaluate"
+    my @cards = $model->get_shuffled_cards(expression => $expr);
+
+    # useful for overriding and provide backends under different
+    # namespaces
+    my $backend_class = $model->resolve_backend_name($some_name);
 
 # DESCRIPTION
 
@@ -55,66 +57,28 @@ out of them.
 
 ## **get\_card**
 
-    my $card = $o->get_card($id);
+    my $card = $model->get_card($id);
 
-get a card.
-
-## **get\_cards**
-
-    my @cards    = $o->get_cards(%args); # list-returning interface
-    my $iterator = $o->get_cards(%args); # iterator-returning interface
-
-get a list of cards. The following keys are supported in `%args`:
-
-- `query`
-
-    a filtering to the queried data. This will be somehow a flux in the
-    beginning, although providing either a value or a list of verbatim
-    values for any field in a card SHOULD be supported and future proof.
+get an [Ordeal::Model::Card](https://metacpan.org/pod/Ordeal::Model::Card) by identifier.
 
 ## **get\_deck**
 
-    my @cards    = $o->get_deck($id); # list-returning interface
-    my $iterator = $o->get_deck($id); # iterator-returning
+    my $deck = $model->get_deck($id);
 
-get a deck, ordered. See also ["get\_shuffled\_cards"](#get_shuffled_cards).
+get an [Ordeal::Model::Deck](https://metacpan.org/pod/Ordeal::Model::Deck) by identifier.
 
 ## **get\_shuffled\_cards**
 
-    my @cards    = $o->get_shuffled_cards(%args); # list
-    my $iterator = $o->get_shuffled_cards(%args); # scalar
+    my @cards   = $o->get_shuffled_cards(%args); # list
+    my $shuffle = $o->get_shuffled_cards(%args); # scalar
 
 get shuffled cards from one or more shuffles/decks.
 
-This method uses [Ordeal::Model::ShuffleSet::create](https://metacpan.org/pod/Ordeal::Model::ShuffleSet::create) behind the scenes,
-to which it forwards most of the parameters in `%args`. Any parameter
-described in [Ordeal::Model::ShuffleSet](https://metacpan.org/pod/Ordeal::Model::ShuffleSet) and not below is a
-documentation bug!
-
 Supported keys are:
 
-- `auto_reshuffle`
+- `expression`
 
-    automatically reshuffle the whole set after each draw (allows easy
-    simulation of dice).
-
-- `items`
-
-    reference to an array of items to be part of the
-    [Ordeal::Model::ShuffleSet](https://metacpan.org/pod/Ordeal::Model::ShuffleSet). The exact shape of
-    an input item is described in [Ordeal::Model::ShuffleSet](https://metacpan.org/pod/Ordeal::Model::ShuffleSet); in this
-    context, it suffices to say that you can provide a list of plain deck
-    identifiers and they will be turned into shuffles;
-
-- `default_n_draw`
-
-    the default number of cards to be drawn from a shuffle. Defaults to
-    `undef` (i.e. it will translate to whatever default is the shuffle).
-
-- `n`
-
-    call [Ordeal::Model::ShuffleSet::draw](https://metacpan.org/pod/Ordeal::Model::ShuffleSet::draw) this number of times. Defaults
-    to `1`.
+    whatever expression is good for [Ordeal::Model::Shuffler](https://metacpan.org/pod/Ordeal::Model::Shuffler).
 
 - `random_source`
 
@@ -137,18 +101,89 @@ Supported keys are:
     it is used for creating a new instance of [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20) if
     ["random\_source"](#random_source) is not present.
 
-The list-context invocation returns the cards directly. The
-scalar-context invocation returns an iterator to go through the
-`$args{n}` draws sequentially, like this:
+The list-context invocation returns the cards directly.
 
-    my $iterator = $o->get_shuffled_cards(%args);
-    while (my @cards = $iterator->()) {
-       # ... use @cards
-    }
+The scalar context invocation returns an [Ordeal::Model::Shuffle](https://metacpan.org/pod/Ordeal::Model::Shuffle) object
+that you can use to draw cards from, e.g.:
 
-Note that the `$iterator` function always returns a list; hence, you
-will probably want to avoid to call it in scalar context, because
-otherwise it will return the number of cards of the specific draw.
+    my @two_cards        = $shuffle->draw(2);
+    my @three_more_cards = $shuffle->draw(3);
+
+Be careful that [Ordeal::Model::Shuffle](https://metacpan.org/pod/Ordeal::Model::Shuffle) will throw an exception if you
+try to draw more cards than available!
+
+## **new**
+
+    my $model = Ordeal::Model->new(%args); # OR
+    my $model = Ordeal::Model->new(\%args);
+
+constructor.
+
+The `%args` hash can contain only one key/value pair. If the key is
+`backend`, then the value MUST be either a blessed object to be used as
+backend, or an array reference with information suitable for generating
+one. In particular, the array form should contain a name that can be
+resolved through ["resolve\_backend\_name"](#resolve_backend_name) as the first item, and any
+argument for the resolved class as the remaining items, in order as they
+are supposed to be consumed by its `new` method.
+
+Otherwise, the key is considered a name suitable for
+["resolve\_backend\_name"](#resolve_backend_name), and the associated value MUST be an array/hash
+reference that is expanded and passed to the `new` method associated to
+the class resolved from the name.
+
+Too complicated? A few examples will hopefull help:
+
+    use Ordeal::Model::Backend::PlainFile;
+    my $pf = Ordeal::Model::Backend::PlainFile->new;
+
+    # Case: backend => $blessed_reference
+    my $m1 = Ordeal::Model->new(backend => $pf);
+
+    # Case: backend => $array_ref
+    my $m2 = Ordeal::Model->new(
+       backend => [PlainFile => base_directory => '/some/path']);
+
+    # Case: key different from 'backend', points to an array reference
+    my $m3 = Ordeal::Model->new(PlainFile => [base_directory => '/some/path']);
+
+    # Case: key different from 'backend', points to a hash reference
+    my $m4 = Ordeal::Model->new(PlainFile => {base_directory => '/some/path'});
+
+## **resolve\_backend\_name**
+
+    my $class_name = $model->resolve_backend_name($name);
+    my $class_name = $package>resolve_backend_name($name);
+
+resolve a `$name` for a backend to use - this is a class method.
+
+The resolution process is as follows:
+
+- if `$name` begins with a `-`, then it is considered directly the class
+name to be used after removing the initial `-` character. Examples:
+
+        $name = '-Whatever';         # resolves to class Whatever
+        $name = '-Whatever::Module'; # resolves to class Whatever::Module
+
+- otherwise, if it contains `::`, but does not begin with `::`, then it is
+again considered as the full name to use for the class. Example:
+
+        $name = 'Whatever::Module';  # resolves to class Whatever::Module
+
+- otherwise, it is used to search for a candidate class, first in namespace
+`$package . '::Backend::'`, then in namespace
+`Ordeal::Model::Backend::`. Examples (assuming that the package you call
+it with is `Ordeal::Model`):
+
+        $name = 'Whatever'; # resolves to Ordeal::Model::Backend::Whatever
+        $name = '::W::Ever': # resolves to Ordeal::Model::Backend::W::Ever
+
+If you want to be on the _safe side_, always pre-pend `::` if you want
+to activate the automatic search for a backend class, and always pre-pend
+`-` if you want to specify the full backend class name.
+
+This method is used by ["new"](#new) behind the scenes, so you can override it
+to provide a different resolution algorithm.
 
 # BUGS AND LIMITATIONS
 

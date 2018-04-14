@@ -8,12 +8,9 @@ use Ouch;
 use Ordeal::Model;
 use Ordeal::Model::Backend::PlainFile;
 
-my $dir   = path(__FILE__)->parent->child('ordeal-data');
-my $model = Ordeal::Model->new(
-   backend => Ordeal::Model::Backend::PlainFile->new(
-      base_directory => $dir->absolute
-   )
-);
+my $dir = path(__FILE__)->parent->child('ordeal-data');
+my $model =
+  Ordeal::Model->new(PlainFile => [base_directory => $dir->absolute]);
 
 isa_ok $model, 'Ordeal::Model';
 
@@ -22,8 +19,7 @@ throws_ok { $model->get_card('mah') } qr{invalid identifier},
 throws_ok { $model->get_card('inexistent-1-ciao.png') } qr{not found},
   'inexistent identifier';
 throws_ok { $model->get_card('inexistent-1-ciao.gif') }
-qr{invalid extension},
-  'invalid extension';
+qr{invalid extension}, 'invalid extension';
 
 my $card;
 lives_ok { $card = $model->get_card('group1-03-wtf.svg') }
