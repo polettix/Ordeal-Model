@@ -1,3 +1,6 @@
+branches:
+  only:
+    - master
 language: perl
 perl:
   - "5.26"
