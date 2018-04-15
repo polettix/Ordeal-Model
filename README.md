@@ -40,11 +40,14 @@ This document describes Ordeal::Model version {{\[ version \]}}.
     # get a deck by identifier
     my $deck = $model->get_deck($deck_id);
 
-    # get shuffled cards, via Ordeal::Model::Shuffler's "evaluate"
-    my @cards = $model->get_shuffled_cards(expression => $expr);
+    # evaluate a complex expression, getting a "shuffle" back
+    my $shuffle = $model->evaluate($expression, %args);
 
-    # useful for overriding and provide backends under different
-    # namespaces
+    # you can pre-compute the parsing of an expression, e.g. for caching
+    my $ast = $model->parse($expression);
+    $shuffle = $model->evaluate($ast, %args);
+
+    # override to provide an alternative resolution algorithm
     my $backend_class = $model->resolve_backend_name($some_name);
 
 # DESCRIPTION
@@ -53,7 +56,47 @@ This module allows you to manage cards and group them into decks. The
 main goal is to provide an easy mean to shuffle decks and get some cards
 out of them.
 
+## Random Source Selection
+
+FIXME add material
+
 # METHODS
+
+## **evaluate**
+
+    my $shuffle = $model>evaluate($expression_or_ast, %args);
+
+Evaluate an input expression, or the AST resulting from its parsing. Calls
+["parse"](#parse) if the input is not already in AST form. See ["Expressions"](#expressions).
+
+The optional additional arguments in `%args` are used for random source
+selection if there is any suitable key among the following:
+
+- `random_source`
+
+    a random source conforming to the interface provided by
+    [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20);
+
+- `random_source_state`
+
+    opaque data useful for fully restoring the state of a random data in an
+    instance of [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20);
+
+- `seed`
+
+    seed value used for creating a new instance of [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20).
+
+The key above are in order of precedence, i.e. `random_source` is tried first,
+then `random_source_state`, then `seed` at last.
+
+This method returns an [Ordeal::Model::Shuffle](https://metacpan.org/pod/Ordeal::Model::Shuffle) object that you can use
+to draw cards from, e.g.:
+
+    my @two_cards        = $shuffle->draw(2);
+    my @three_more_cards = $shuffle->draw(3);
+
+Be careful that [Ordeal::Model::Shuffle](https://metacpan.org/pod/Ordeal::Model::Shuffle) will throw an exception if you
+try to draw more cards than available!
 
 ## **get\_card**
 
@@ -66,51 +109,6 @@ get an [Ordeal::Model::Card](https://metacpan.org/pod/Ordeal::Model::Card) by id
     my $deck = $model->get_deck($id);
 
 get an [Ordeal::Model::Deck](https://metacpan.org/pod/Ordeal::Model::Deck) by identifier.
-
-## **get\_shuffled\_cards**
-
-    my @cards   = $o->get_shuffled_cards(%args); # list
-    my $shuffle = $o->get_shuffled_cards(%args); # scalar
-
-get shuffled cards from one or more shuffles/decks.
-
-Supported keys are:
-
-- `expression`
-
-    whatever expression is good for [Ordeal::Model::Shuffler](https://metacpan.org/pod/Ordeal::Model::Shuffler).
-
-- `random_source`
-
-    a default random source to be used in common by all shuffles. Any specific
-    random source set in a definition overrides this, even an explicit
-    `undef` taht will trigger creation of a shuffle-specific random source.
-    It is not used for items passed as shuffles.
-
-- `random_source_state`
-
-    opaque data useful for fully restoring the state of a random data
-    source. The actual usage of these data is up to the module implementing
-    the random data source. It is passed to method `restore` of whatever
-    random data source is available, i.e. either the one provided by
-    `%args` or, as a fallback, an instance of [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20).
-
-- `seed`
-
-    this parameter is consumed internally in this method, and in particular
-    it is used for creating a new instance of [Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20) if
-    ["random\_source"](#random_source) is not present.
-
-The list-context invocation returns the cards directly.
-
-The scalar context invocation returns an [Ordeal::Model::Shuffle](https://metacpan.org/pod/Ordeal::Model::Shuffle) object
-that you can use to draw cards from, e.g.:
-
-    my @two_cards        = $shuffle->draw(2);
-    my @three_more_cards = $shuffle->draw(3);
-
-Be careful that [Ordeal::Model::Shuffle](https://metacpan.org/pod/Ordeal::Model::Shuffle) will throw an exception if you
-try to draw more cards than available!
 
 ## **new**
 
@@ -152,6 +150,24 @@ Too complicated? A few examples will hopefull help:
 
 If `%args` contains nothing, then [Ordeal::Model::Backend::PlainFile](https://metacpan.org/pod/Ordeal::Model::Backend::PlainFile)
 is used with default parameters for its constructor.
+
+## **parse**
+
+    my $ast = $model>parse($expression);
+
+Parse an expression and return an AST suitable for ["evaluate"](#evaluate).
+
+## **random\_source**
+
+    # in constructor
+    Ordeal::Model->new(random_source => $rs, ...);
+
+    my $rs = $shuffler>random_source;
+    $shuffler>random_source($rs);
+
+Accessor for the source of randomness. It defaults to an instance of
+[Ordeal::Model::ChaCha20](https://metacpan.org/pod/Ordeal::Model::ChaCha20), set at construction time. It _MAY_ be used
+by ["evaluate"](#evaluate) unless it is overridden by arguments.
 
 ## **resolve\_backend\_name**
 

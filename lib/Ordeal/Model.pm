@@ -14,12 +14,20 @@ use Path::Tiny;
 use Scalar::Util qw< blessed >;
 use Module::Runtime qw< use_module require_module is_module_name >;
 
-use Ordeal::Model::Shuffler;
+use Ordeal::Model::ChaCha20;
+use Ordeal::Model::Evaluator;
+use Ordeal::Model::Parser;
 
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
 
 has 'backend';
+has random_source => (
+   default => sub {
+      require Ordeal::Model::ChaCha20;
+      return Ordeal::Model::ChaCha20->new;
+   }
+);
 
 sub _backend_factory ($package, $name, @args) {
    $name = $package->resolve_backend_name($name);
@@ -31,25 +39,17 @@ sub _default_backend ($package) {
    return Ordeal::Model::Backend::PlainFile->new;
 }
 
+sub evaluate ($self, $what, %args) {
+   my $ast = ref($what) ? $what : $self->parse($what);
+   return Ordeal::Model::Evaluator::EVALUATE(
+      ast           => $ast,
+      model         => $self,
+      random_source => $self->_random_source(%args),
+   );
+}
+
 sub get_card ($self, $id) { return $self->backend->card($id) }
 sub get_deck ($self, $id) { return $self->backend->deck($id) }
-
-sub get_shuffled_cards ($self, %args) {
-   my $random_source = $args{random_source}
-      // do {
-         require Ordeal::Model::ChaCha20;
-         Ordeal::Model::ChaCha20->new(seed => $args{seed});
-      };
-   $random_source->restore($args{random_source_state})
-      if exists $args{random_source_state};
-
-   my $shuffle = Ordeal::Model::Shuffler->new(
-      random_source => $random_source,
-      model => $self,
-   )->evaluate($args{expression});
-   return $shuffle->draw if wantarray;
-   return $shuffle;
-}
 
 sub new ($package, @rest) {
    my %args = (@_ && ref($_[0])) ? %{$rest[0]} : @rest;
@@ -72,6 +72,23 @@ sub new ($package, @rest) {
    }
 
    return $package->SUPER::new(backend => $backend);
+}
+
+sub parse ($self, $text) {
+   ouch 400, 'undefined input expression to parse()' unless defined $text;
+   return Ordeal::Model::Parser::PARSE($text);
+}
+
+sub _random_source ($self, %args) {
+   return $args{random_source} if $args{random_source};
+
+   return Ordeal::Model::ChaCha20->new->restore($args{random_source_state})
+      if defined $args{random_source_state};
+
+   return Ordeal::Model::ChaCha20->new(seed => $args{seed})
+      if defined $args{seed};
+
+   return $self->random_source;
 }
 
 sub resolve_backend_name ($package, $name) {

@@ -20,13 +20,13 @@ my $model = Ordeal::Model->new(
 
 isa_ok $model, 'Ordeal::Model';
 
-throws_ok { $model->get_shuffled_cards() }
+throws_ok { $model->evaluate(undef) }
 qr{undefined input expression}, 'no input expression';
 
 my $shuffled;
 lives_ok {
-   $shuffled = $model->get_shuffled_cards(
-      expression => '"group1-02-all"@[#5]',
+   $shuffled = $model->evaluate(
+      '"group1-02-all"@[#5]',
       seed       => 9111972,
      )
 } ## end lives_ok
@@ -36,10 +36,10 @@ isa_ok $shuffled, 'Ordeal::Model::Shuffle';
 my @got = $shuffled->draw;
 is scalar(@got), 5, 'cards in shuffled deck';
 
-my @shuffled = $model->get_shuffled_cards(
-   expression => '"group1-02-all"@[#5]',
+my @shuffled = $model->evaluate(
+   '"group1-02-all"@[#5]',
    seed       => 9111972,
-);
+)->draw;
 is scalar(@shuffled), 5, 'same number of cards in list invocation';
 
 @got      = map { $_->id } @got;
