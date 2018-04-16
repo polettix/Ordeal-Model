@@ -52,13 +52,13 @@ This document describes Ordeal::Model version {{\[ version \]}}.
 
 # DESCRIPTION
 
-This module allows you to manage cards and group them into decks. The
-main goal is to provide an easy mean to shuffle decks and get some cards
-out of them.
+This document is about `Ordeal::Model`, a module allows you to manage
+cards and group them into decks. The main goal is to provide an easy
+mean to shuffle decks and get some cards out of them.
 
-## Random Source Selection
-
-FIXME add material
+In the document you will find a reference for the main module. If you
+are interested into _using_ it, head to [Ordeal::Model::Tutorial](https://metacpan.org/pod/Ordeal::Model::Tutorial)
+which provides a gentler introduction.
 
 # METHODS
 
@@ -66,8 +66,13 @@ FIXME add material
 
     my $shuffle = $model>evaluate($expression_or_ast, %args);
 
-Evaluate an input expression, or the AST resulting from its parsing. Calls
-["parse"](#parse) if the input is not already in AST form. See ["Expressions"](#expressions).
+Evaluate an input expression, or the AST resulting from its parsing.
+Calls ["parse"](#parse) if the input is not already in AST form. See
+[Ordeal::Model::Parser](https://metacpan.org/pod/Ordeal::Model::Parser) for the gory details about the grammar accepted
+for expressions, and to the code for [Ordeal::Model::Evaluator](https://metacpan.org/pod/Ordeal::Model::Evaluator) to
+figure out how to structure an AST (which you should not need to!). For
+a gentler introduction (who loves to read a grammar, after all?!?) see
+[Ordeal::Model::Tutorial](https://metacpan.org/pod/Ordeal::Model::Tutorial).
 
 The optional additional arguments in `%args` are used for random source
 selection if there is any suitable key among the following:
