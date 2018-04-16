@@ -238,14 +238,18 @@ sub _positive_random_int {
       state $ri = _random_int();
       my $pos = pos $$rtext;
       my $r = $ri->($rtext) or return;
-      for my $alt ($r->[1]->@*) { # iterate over alternatives
-         for my $n ($alt->@* == 1 ? ($alt->@*) : ($alt->[1]->@*)) {
-            next if $n > 0;
-            pos($$rtext) = $pos;
-            return;
+
+      state $is_positive;
+      $is_positive ||= sub ($x) {
+         return $x > 0 unless ref $x;
+         for my $i (1 .. $#$x) { # skip 1st item in array
+            return unless $is_positive->($x->[$i]);
          }
-      }
-      return $r;
+         return 1; # all checks were good
+      };
+      return $r if $is_positive->($r);
+
+      return;
    };
 }
 
