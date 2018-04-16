@@ -80,8 +80,8 @@ Calls L</parse> if the input is not already in AST form. See
 L<Ordeal::Model::Parser> for the gory details about the grammar accepted
 for expressions, and to the code for L<Ordeal::Model::Evaluator> to
 figure out how to structure an AST (which you should not need to!). For
-a gentler introduction (who loves to read a grammar, after all?!?) head
-to L<Ordeal::Model::Tutorial>.
+a gentler introduction (who loves to read a grammar, after all?!?) see
+L<Ordeal::Model::Tutorial>.
 
 The optional additional arguments in C<%args> are used for random source
 selection if there is any suitable key among the following:
