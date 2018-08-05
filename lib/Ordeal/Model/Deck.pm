@@ -14,6 +14,7 @@ use List::Util qw< shuffle >;
 use experimental qw< signatures postderef >;
 no warnings qw< experimental::signatures experimental::postderef >;
 
+has description => (default => '');
 has group => (default => '');
 has id => (default => undef);
 has name => (default => '');
