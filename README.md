@@ -115,6 +115,13 @@ get an [Ordeal::Model::Card](https://metacpan.org/pod/Ordeal::Model::Card) by id
 
 get an [Ordeal::Model::Deck](https://metacpan.org/pod/Ordeal::Model::Deck) by identifier.
 
+## **get\_deck\_ids**
+
+    my @ids = $model_>get_deck_ids;
+
+get a list of available deck identifiers. Each can be used with
+["get\_deck"](#get_deck) to load a deck.
+
 ## **new**
 
     my $model = Ordeal::Model->new(%args); # OR

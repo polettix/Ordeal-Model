@@ -4,7 +4,7 @@
       "Flavio Poletti <polettix@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Milla version v1.0.18, Dist::Zilla version 6.010, CPAN::Meta::Converter version 2.150005",
+   "generated_by" : "Dist::Milla version v1.0.20, Dist::Zilla version 6.012, CPAN::Meta::Converter version 2.150005",
    "license" : [
       "artistic_2"
    ],
@@ -31,7 +31,7 @@
       },
       "develop" : {
          "requires" : {
-            "Dist::Milla" : "v1.0.18",
+            "Dist::Milla" : "v1.0.20",
             "Path::Tiny" : "0.084",
             "Template::Perlish" : "1.52",
             "Test::Pod" : "1.51",
@@ -45,6 +45,7 @@
             "Module::Runtime" : "0.014",
             "Ouch" : "0.0500",
             "Path::Tiny" : "0.084",
+            "YAML::Tiny" : "1.73",
             "perl" : "5.020000"
          }
       },
@@ -73,6 +74,8 @@
       "Flavio Poletti <flavio.poletti@ericsson.com>",
       "Flavio Poletti <flavio@polettix.it>"
    ],
-   "x_serialization_backend" : "Cpanel::JSON::XS version 4.00"
+   "x_generated_by_perl" : "v5.24.1",
+   "x_serialization_backend" : "Cpanel::JSON::XS version 4.04",
+   "x_static_install" : 0
 }
 

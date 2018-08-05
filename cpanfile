@@ -5,6 +5,7 @@ requires 'Ouch',            '0.0500';
 requires 'Mo',              '0.40';
 requires 'Path::Tiny',      '0.084';
 requires 'Module::Runtime', '0.014';
+requires 'YAML::Tiny',      '1.73';
 
 on test => sub {
    requires 'Path::Tiny',      '0.084';

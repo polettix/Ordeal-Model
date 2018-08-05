@@ -50,6 +50,7 @@ sub evaluate ($self, $what, %args) {
 
 sub get_card ($self, $id) { return $self->backend->card($id) }
 sub get_deck ($self, $id) { return $self->backend->deck($id) }
+sub get_deck_ids ($self)  { return $self->backend->decks     }
 
 sub new ($package, @rest) {
    my %args = (@_ && ref($_[0])) ? %{$rest[0]} : @rest;
