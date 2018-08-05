@@ -61,18 +61,18 @@ plain text files with the lists.
 
 accessor for the base directory where cards and decks are kept.
 
+=head2 B<< card >>
+
+   my $card = $obj->card($id);
+
+get a card by identifier. Returns a L<Ordeal::Model::Card> object.
+
 =head2 B<< content_type_for >>
 
    my $ct = $obj->content_type_for($extension);
 
 get the Content-Type for the specific extension, supported ones are
 C<PNG>, C<JPG> or C<SVG>, case-insensitive.
-
-=head2 B<< card >>
-
-   my $card = $obj->card($id);
-
-get a card by identifier. Returns a L<Ordeal::Model::Card> object.
 
 =head2 B<< deck >>
 
@@ -81,6 +81,12 @@ get a card by identifier. Returns a L<Ordeal::Model::Card> object.
 get a deck by identifier. The order of the cards in the deck is either
 lexicographic (for directory-based decks) or the order they are found in
 the plain text file.
+
+=head2 B<< decks >>
+
+   my $decks = $obj->decks;
+
+Get a list of all available decks.
 
 =head2 B<< path_for >>
 

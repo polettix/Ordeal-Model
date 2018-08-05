@@ -66,6 +66,13 @@ sub deck ($self, $id) {
    );
 }
 
+sub decks ($s) {
+   return
+      grep { ! m{\A [._]}mxs } # nothing hidden or starting with underscore
+      map { $_->basename }     # return identifiers of decks
+      path($s->base_directory)->children;
+}
+
 sub path_for ($self, $type, $id) {
    my $path = path($self->base_directory)->child($type => $id);
    $path->exists or ouch 404, 'not found', $id;
