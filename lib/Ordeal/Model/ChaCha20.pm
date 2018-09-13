@@ -9,7 +9,7 @@ package Ordeal::Model::ChaCha20;
 use 5.020;
 use strict;
 use warnings;
-{ our $VERSION = '0.001'; }
+{ our $VERSION = '0.002'; }
 use Ouch;
 use Mo qw< build default >;
 use experimental qw< signatures postderef >;
