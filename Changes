@@ -1,5 +1,7 @@
 {{$NEXT}}
    - add explanation for int_rand optimization phase
+   - add Ordeal::Model::Backend::Raw for data-structure
+     based management
 
 0.003  2020-05-16 21:26:21 CEST
    - refactor ::ChaCha20::int_rand
