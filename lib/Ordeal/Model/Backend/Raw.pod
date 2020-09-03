@@ -62,6 +62,15 @@ identifiers, in the order they appear in a sorted deck.
 
 =head1 METHODS
 
+=begin implementation
+
+=head2 B<< BUILD >>
+
+Method to I<build> the object, actually it takes the data out and
+fills in all the actual accessors, for later usage.
+
+=end implementation
+
 =head2 B<< card >>
 
    my $card = $obj->card($id);
