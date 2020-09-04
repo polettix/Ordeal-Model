@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.004  2020-09-04 07:43:24 CEST
    - add explanation for int_rand optimization phase
    - add Ordeal::Model::Backend::Raw for data-structure
      based management
